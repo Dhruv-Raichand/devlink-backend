@@ -8,6 +8,11 @@ app.get("/admin/getAllData", (req, res) => {
     //logic to fetching All data
     res.send("All Data Sent")
 })
+app.get("/admin/deleteUser", (req, res) => {
+    //Check if request is authorized
+    //logic to fetching All data
+    res.send("User Deleted")
+})
 
 app.use("/", (req, res, next) => {
     // res.send("hnji ki chahida");
