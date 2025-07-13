@@ -1,17 +1,19 @@
 const express = require("express");
 const app = express();
+const { adminAuth, usersAuth } = require("./middlewares/auth");
 
 // GET /users => midlleware chain => request handler
 
+app.use("/admin", adminAuth);
+// app.use("/users", usersAuth);
+
 app.get("/admin/getAllData", (req, res) => {
-    //Check if request is authorized
+    res.send("All Data Sent");
     //logic to fetching All data
-    res.send("All Data Sent")
 })
 app.get("/admin/deleteUser", (req, res) => {
-    //Check if request is authorized
     //logic to fetching All data
-    res.send("User Deleted")
+    res.send("Deleted a User")
 })
 
 app.use("/", (req, res, next) => {
@@ -19,13 +21,12 @@ app.use("/", (req, res, next) => {
     next()
 });
 
-app.get("/users", (req, res, next) => {
-    // res.send("Request Handler 1");
-    next();
-});
+app.get("/users/login", (req, res) => {
+    res.send("login user")
+})
 
-app.get("/users", (req, res, next) => {
-    res.send("Request Handler 2");
+app.get("/users", usersAuth, (req, res, next) => {
+    res.send("Request Handler 1");
 });
 
 app.post("/users", (req, res) => {
