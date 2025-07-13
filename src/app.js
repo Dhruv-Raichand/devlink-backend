@@ -4,38 +4,22 @@ const { adminAuth, usersAuth } = require("./middlewares/auth");
 
 // GET /users => midlleware chain => request handler
 
-app.use("/admin", adminAuth);
-// app.use("/users", usersAuth);
-
-app.get("/admin/getAllData", (req, res) => {
-    res.send("All Data Sent");
-    //logic to fetching All data
-})
-app.get("/admin/deleteUser", (req, res) => {
-    //logic to fetching All data
-    res.send("Deleted a User")
+app.get("/getUserData", (err, req, res, next) => {
+    try{
+        //Logic of DB call and get user data //write all db calls in try catch block
+        throw new Error("hnji Beta error")
+        res.send("User Data Sent");
+    } catch(err){
+        res.status(500).send("Some Error contact support team")
+    }
 })
 
-app.use("/", (req, res, next) => {
-    // res.send("hnji ki chahida");
-    next()
-});
-
-app.get("/users/login", (req, res) => {
-    res.send("login user")
+app.use("/", (err, req, res, next) => {
+    if (err) {
+        //Log your error
+        res.status(500).send("Something Went Wrong!!!")
+    }
 })
-
-app.get("/users", usersAuth, (req, res, next) => {
-    res.send("Request Handler 1");
-});
-
-app.post("/users", (req, res) => {
-    res.send("Hello User POST");
-});
-
-app.use("/test", (req, res) => {
-    res.send("Hnji Beta")
-});
 
 app.listen(3000, () => {
     console.log("Server is successfully listening on port 3000...");
