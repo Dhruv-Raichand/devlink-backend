@@ -44,10 +44,39 @@ app.get("/userid", async (req, res) => {
   const userid = req.body._id;
   try{
     const user = await User.findById(userid);
-    res.send(user);
+    if(!user) {
+      res.status(404).send("User not found!!!");
+    } else{
+      res.send(user);
+    }
   } catch(err){
     res.status(400).send("Something Went Wrong!!!")
    }
+});
+
+//Delete a user
+app.delete("/user", async (req, res) => {
+  const userID = req.body.userID;
+  try{
+    // await User.findByIdAndDelete(userID);
+    await User.findOneAndDelete({ _id: userID });
+    res.send("User Deleted Succesfully!!!");
+  } catch(err) {
+    res.status(400).send("Something Went Wrong");
+  }
+});
+
+//Update a user
+app.patch("/user", async (req, res) => {
+  const userID = req.body.userID;
+  const data = req.body;
+  console.log(data);
+  try{
+    const user = await User.findByIdAndUpdate(userID, data);
+    res.send(user);
+  } catch(err){
+    res.status(400).send("Something Went Wrong");
+  }
 });
 
 connectDB()
