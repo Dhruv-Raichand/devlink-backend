@@ -67,12 +67,12 @@ app.delete("/user", async (req, res) => {
 });
 
 //Update a user
-app.patch("/users", async (req, res) => {
+app.patch("/user", async (req, res) => {
   const userID = req.body.userID;
   // const emailID = req.body.emailID;
   const data = req.body;
   try{
-    const user = await User.findByIdAndUpdate(userID, data, { returnDocument: 'after'});
+    const user = await User.findByIdAndUpdate(userID, data, { returnDocument: 'after', runValidators: true});
     if (!user) {
       res.status(400).send("update failed!!!");
     } else {
