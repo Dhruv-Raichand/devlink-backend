@@ -7,15 +7,16 @@ app.use(express.json());
 
 app.post("/signup", async (req, res) => {
   //Creating a new instance of the User model
-  const user = new User(req.body);
+  const Data = req.body;
   try {
-    const ALLOWED_FIELDS = ["emailId", "firstName", "lastName", "age"];
-    const isAllowed = Object.keys().every((k) => ALLOWED_FIELDS.includes(k));
+    const user = new User(Data);
+    const ALLOWED_FIELDS = ["emailId", "firstName", "lastName", "password"];
+    const isAllowed = Object.keys(Data).every((k) => ALLOWED_FIELDS.includes(k));
     if (!isAllowed) {
-      throw new Error("Invalid Inputs!!!");
+      throw new Error("Invalid Inputs");
     }
     await user.save();
-    res.send("User Added Successfully!", user);
+    res.send("User Added Successfully!" + user);
   } catch (err) {
     res.status(400).send("Error in saving the user: " + err.message);
   }
@@ -28,7 +29,7 @@ app.get("/user", async (req, res) => {
     if (user.length === 0) {
       res.status(404).send("User not found");
     } else {
-      res.send("User Found", user);
+      res.send("User Found" + user);
     }
   } catch (err) {
     res.status(400).send("Something Went Wrong!!!" + err.message);
@@ -83,6 +84,8 @@ app.patch("/user/:userID", async (req, res) => {
       "about",
       "skills",
       "age",
+      "photoUrl",
+      "password"
     ];
     const isUpdateAllowed = Object.keys(data).every((k) =>
       ALLOWED_UPDATES.includes(k)
@@ -90,7 +93,7 @@ app.patch("/user/:userID", async (req, res) => {
     if (!isUpdateAllowed) {
       throw new Error("Update Not Allowed!!!");
     }
-    if (data?.skills.length > 10) {
+    if (data?.skills?.length > 10) {
       throw new Error("Skills cannot be more than 10");
     }
     const user = await User.findByIdAndUpdate(userID, data, {
