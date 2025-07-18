@@ -3,7 +3,9 @@ const mongoose = require("mongoose");
 const userSchema = mongoose.Schema({
     firstName: {
         type: String,
-        required: true
+        required: true,
+        minLength: 3,
+        maxLength: 20
     },
     lastName: {
         type: String
@@ -25,11 +27,12 @@ const userSchema = mongoose.Schema({
     },
     gender: {
         type: String,
-        validate(value) {
-            if (!["male", "female", "others"].includes(value)){
-                throw new Error("Not Valid Gender")
-            }
-        }
+        enum: ["male", "female", "others"]
+        // validate(value) {
+        //     if (!["male", "female", "others"].includes(value)){
+        //         throw new Error("Not Valid Gender")
+        //     }
+        // }
     },
     about: {
         type: String,

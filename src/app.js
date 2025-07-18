@@ -11,9 +11,9 @@ app.post("/signup", async (req, res) => {
     const user = new User(req.body);
     try{
       await user.save();
-      res.send("User Added Successfully!")
+      res.send("User Added Successfully!", user)
     } catch(err) {
-      res.status(400).send("Error in saving the user: "+ err.message)
+      res.status(400).send("Error in saving the user: " + err.message)
     }
 })
 
@@ -24,10 +24,10 @@ app.get("/user", async (req, res) => {
     if (user.length === 0) {
       res.status(404).send("User not found");
     } else {
-      res.send(user);
+      res.send("User Found",user);
     }
   } catch(err){
-    res.status(400).send("Something Went Wrong!!!")
+    res.status(400).send("Something Went Wrong!!!" + err.message)
   }
 });
 
@@ -36,7 +36,7 @@ app.get("/feed", async (req, res) => {
     const users = await User.find();
     res.send(users);
   } catch(err) {
-    res.status.send("Something Went Wrong!!!")
+    res.status.send("Something Went Wrong!!!" + err.message)
   }
 });
 
@@ -47,10 +47,10 @@ app.get("/userid", async (req, res) => {
     if(!user) {
       res.status(404).send("User not found!!!");
     } else{
-      res.send(user);
+      res.send("User Found", user);
     }
   } catch(err){
-    res.status(400).send("Something Went Wrong!!!")
+    res.status(400).send("Something Went Wrong!!!" + err.message)
    }
 });
 
@@ -62,7 +62,7 @@ app.delete("/user", async (req, res) => {
     await User.findOneAndDelete({ _id: userID });
     res.send("User Deleted Succesfully!!!");
   } catch(err) {
-    res.status(400).send("Something Went Wrong");
+    res.status(400).send("Something Went Wrong" + err.message);
   }
 });
 
@@ -76,10 +76,10 @@ app.patch("/user", async (req, res) => {
     if (!user) {
       res.status(400).send("update failed!!!");
     } else {
-      res.send(user);
+      res.send("User Updated!!!" + user);
     }
   } catch(err){
-    res.status(400).send("Something Went Wrong");
+    res.status(400).send("Something Went Wrong" + err.message);
   }
 });
 
