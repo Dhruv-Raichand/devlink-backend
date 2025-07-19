@@ -1,20 +1,26 @@
 const express = require("express");
 const connectDB = require("./config/database");
-const app = express();
 const User = require("./models/user");
+const validate = require("./utils/validate");
+const bcrypt = require("bcrypt");
 
+const app = express();
 app.use(express.json());
 
+//Creating a new instance of the User model
 app.post("/signup", async (req, res) => {
-  //Creating a new instance of the User model
-  const Data = req.body;
+  const { firstName, lastName, emailId, password } = req.body;
   try {
-    const user = new User(Data);
-    const ALLOWED_FIELDS = ["emailId", "firstName", "lastName", "password"];
-    const isAllowed = Object.keys(Data).every((k) => ALLOWED_FIELDS.includes(k));
-    if (!isAllowed) {
-      throw new Error("Invalid Inputs");
-    }
+    //validate user data
+    validate(req.body);
+    //hashing user password
+    const hashedPassword = await bcrypt.hash(password, 10); 
+    const user = new User({
+      firstName,
+      lastName,
+      emailId,
+      password: hashedPassword
+    });
     await user.save();
     res.send("User Added Successfully!" + user);
   } catch (err) {
