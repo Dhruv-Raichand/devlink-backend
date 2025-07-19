@@ -14,17 +14,37 @@ app.post("/signup", async (req, res) => {
     //validate user data
     validate(req.body);
     //hashing user password
-    const hashedPassword = await bcrypt.hash(password, 10); 
+    const hashedPassword = await bcrypt.hash(password, 10);
     const user = new User({
       firstName,
       lastName,
       emailId,
-      password: hashedPassword
+      password: hashedPassword,
     });
     await user.save();
     res.send("User Added Successfully!" + user);
   } catch (err) {
     res.status(400).send("Error in saving the user: " + err.message);
+  }
+});
+
+//login user
+app.post("/login", async (req, res) => {
+  const { emailId, password } = req.body;
+  try {
+    const user = await User.findOne({ emailId: emailId });
+    if (!user) {
+      throw new Error("Invalid Credentials");
+    } else {
+      const isCorrect = await bcrypt.compare(password, user.password);
+      if (!isCorrect) {
+        throw new Error("Invalid Credentials");
+      } else {
+        res.send("login successfull!!");
+      };
+    }
+  } catch (err) {
+    res.status(400).send("Error : " + err.message);
   }
 });
 
@@ -91,7 +111,7 @@ app.patch("/user/:userID", async (req, res) => {
       "skills",
       "age",
       "photoUrl",
-      "password"
+      "password",
     ];
     const isUpdateAllowed = Object.keys(data).every((k) =>
       ALLOWED_UPDATES.includes(k)
