@@ -89,3 +89,9 @@
 - Set the expiry of JWT token And cookies to 7 days
 - Create userSchema method to getJWT()
 - Create userSchema method to comparePasswords(passwordInputByUser)
+
+- Explore tinder APIs
+- Create a list of all API you can think of Dinder
+- Group multiple routes under respective  routes
+- Create authRoute, profileRouter, requesstRouter
+- Import these routers in app.js
