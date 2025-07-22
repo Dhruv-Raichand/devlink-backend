@@ -95,3 +95,7 @@
 - Group multiple routes under respective  routes
 - Create authRoute, profileRouter, requesstRouter
 - Import these routers in app.js
+- Create POST /logout
+- Create PATCH /profile/edit
+- Create PATCH /profile/password
+

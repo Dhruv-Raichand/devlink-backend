@@ -3,7 +3,6 @@ const authRouter = Express.Router();
 const User = require("../models/user");
 const validate = require("../utils/validate");
 
-
 //Creating a new instance of the User model
 authRouter.post("/signup", async (req, res) => {
   const { firstName, lastName, emailId, password } = req.body;
@@ -38,7 +37,9 @@ authRouter.post("/login", async (req, res) => {
       //create JWT token
       const Token = await user.getJWT();
       //Add the token to cookie and send the response back to user
-      res.cookie("token", Token, {expires: new Date(Date.now() + 24 * 7 * 3600000)});
+      res.cookie("token", Token, {
+        expires: new Date(Date.now() + 24 * 7 * 3600000),
+      });
       res.send("login successfull!!");
     } else {
       throw new Error("Invalid Credentials");
@@ -48,5 +49,10 @@ authRouter.post("/login", async (req, res) => {
   }
 });
 
+//logout
+authRouter.post("/logout", (req, res) => {
+  res.cookie("token", null, { expires: new Date(Date.now()) });
+  res.send("logout successfull!!!");
+});
 
 module.exports = authRouter;
