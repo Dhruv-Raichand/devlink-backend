@@ -57,10 +57,16 @@ const userSchema = mongoose.Schema({
     },
     about: {
         type: String,
-        default: "Hnji beta"
+        default: "Hnji beta",
+        maxLength: 50
     },
     skills: {
-        type: [String]
+        type: [String],
+        validate(value){
+            if (value.length > 10){
+                throw new Error("Skills cannot be more than 10")
+            }
+        },
     }
 
 }, { timestamps: true });

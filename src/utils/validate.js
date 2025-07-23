@@ -25,7 +25,7 @@ function validateUserEdit(data) {
   ];
   const isValid = Object.keys(data).every((field) =>
     allowedEditField.includes(field)
-  );
+);
   return isValid;
 }
 
