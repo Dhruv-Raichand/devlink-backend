@@ -40,7 +40,10 @@ const userSchema = mongoose.Schema({
     },
     gender: {
         type: String,
-        enum: ["male", "female", "others"]
+        enum: {
+            values: ["male", "female", "others"],
+            message: "{VALUE} is not a valid gender"
+        }
         // validate(value) {
         //     if (!["male", "female", "others"].includes(value)){
         //         throw new Error("Not Valid Gender")

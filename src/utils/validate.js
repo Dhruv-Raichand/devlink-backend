@@ -4,7 +4,7 @@ function validate(data) {
   const { firstName, lastName, emailId, password } = data;
   if (!firstName || !lastName) {
     throw new Error("Name cannot be Empty");
-  } else if (firstName.length < 4 && lastName.length > 20) {
+  } else if (firstName.length < 4 && firstName.length > 20) {
     throw new Error("Invalid name length");
   } else if (!validator.isEmail(emailId)) {
     throw new Error("Invalid Email");

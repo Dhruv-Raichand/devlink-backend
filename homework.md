@@ -98,4 +98,17 @@
 - Create POST /logout
 - Create PATCH /profile/edit
 - Create PATCH /profile/password
+- Validate all data in every POST, PATCH APIs
+
+- Create Connnection Request Schema
+- Send Connection Request API
+- Proper validation of Data
+- Think about ALL corner cases
+- $or query $and query in mongoose - https://www.mongodb.com/docs/manual/reference/operator/query-logical/
+- schema.pre("save") function
+- Read more about indexes in MongoDB
+- Why do we need index in DB?
+- What is the advantages and disadvantage of creating indexes? 
+- Read this arcticte about compond indexes - https : //www.monqodb.com/docs/manual/core/indexes
+index-types/index-compound/
 

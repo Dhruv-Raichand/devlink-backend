@@ -1,7 +1,8 @@
 const Express = require("express");
 const authRouter = Express.Router();
 const User = require("../models/user");
-const validate = require("../utils/validate");
+const { validate } = require("../utils/validate");
+const bcrypt = require("bcrypt");
 
 //Creating a new instance of the User model
 authRouter.post("/signup", async (req, res) => {
@@ -18,9 +19,15 @@ authRouter.post("/signup", async (req, res) => {
       password: hashedPassword,
     });
     await user.save();
-    res.send("User Added Successfully!" + user);
+    res.json({
+      message: "User Added Successfully!",
+      user
+    });
   } catch (err) {
-    res.status(400).send("Error in saving the user: " + err.message);
+    res.status(400).json({
+      message: "Error in saving the user",
+      errMessage: err.message
+    });
   }
 });
 
