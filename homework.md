@@ -113,3 +113,10 @@
 - ALWAYS THINK ABOUT ALL CORNER CASES
 
 - Write code with proper validation for POST /request/review/:status/:requestId
+- Thought process - POST vs GET
+- Read about ref and populate https://mongoosejs.com/docs/api/document.html#Document.prototype.populate()
+- Create GET /user/requests/received with all the checks
+- Create GET /user/connections
+
+- Logic for GET /feed API
+- Explore the $nin, $and, $ne, and other comparison operators

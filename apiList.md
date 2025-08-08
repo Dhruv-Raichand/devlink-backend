@@ -21,9 +21,9 @@
     - POST request/review/reject/:requestId
 
 ## userRouter
-- GET user/feed
+- GET user/requests/received
 - GET user/connection
-- GET user/requests
+- GET user/feed
 
 - GET /search/
 
