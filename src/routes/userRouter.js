@@ -20,7 +20,7 @@ userRouter.get("/user/requests/received", userAuth, async (req, res) => {
     }));
     res.json({
       message: "received requests",
-      received,
+      data: received,
     });
   } catch (err) {
     res.status(400).json({
@@ -28,6 +28,7 @@ userRouter.get("/user/requests/received", userAuth, async (req, res) => {
     });
   }
 });
+
 userRouter.get("/user/connections", userAuth, async (req, res) => {
   try {
     const loggedInUser = req.user;
@@ -53,7 +54,7 @@ userRouter.get("/user/connections", userAuth, async (req, res) => {
     });
     res.json({
       message: "Connections",
-      connectionUsers,
+      data: connectionUsers,
     });
   } catch (err) {
     res.status(400).json({
@@ -61,9 +62,14 @@ userRouter.get("/user/connections", userAuth, async (req, res) => {
     });
   }
 });
+
 userRouter.get("/feed", userAuth, async (req, res) => {
   try {
     const loggedInUser = req.user;
+    const page = req.query.page || 1;
+    let limit = req.query.limit || 10;
+    limit = limit > 50 ? 50 : limit;
+    const skip = (page - 1) * limit;
     const SAFE_USER_FIELDS = "_id firstName lastName about";
     const connectionRequests = await connectionRequest
       .find({
@@ -80,10 +86,13 @@ userRouter.get("/feed", userAuth, async (req, res) => {
         { _id: { $nin: Array.from(hideUserFromFeed) } },
         { _id: { $ne: loggedInUser._id } },
       ],
-    }).select(SAFE_USER_FIELDS);
+    })
+      .select(SAFE_USER_FIELDS)
+      .skip(skip)
+      .limit(limit);
     res.json({
-      message: "all connection requests",
-      Users,
+      message: "new Users ",
+      data: Users,
     });
   } catch (err) {
     res.status(400).json({
