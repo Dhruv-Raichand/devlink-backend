@@ -1,7 +1,7 @@
 const Express = require("express");
 const profileRouter = Express.Router();
 const { userAuth } = require("../middlewares/auth");
-const { validateUserEdit, validate } = require("../utils/validate");
+const { validateUserEdit } = require("../utils/validate");
 const bcrypt = require("bcrypt");
 const validator = require("validator");
 
@@ -41,24 +41,21 @@ profileRouter.patch("/profile/password", userAuth, async (req, res) => {
     const { password, newPassword } = req.body;
     if (!password || !newPassword) {
       throw new Error("current password and new password is required");
-    } else if(password === newPassword) {
-      throw new Error("new password should not be same as current password")
-    } else if(!validator.isStrongPassword(newPassword)){
-      throw new Error("new password is weak")
-    };
+    } else if (password === newPassword) {
+      throw new Error("new password should not be same as current password");
+    } else if (!validator.isStrongPassword(newPassword)) {
+      throw new Error("new password is weak");
+    }
     const loggedInUser = req.user;
-    const isCorrect = await bcrypt.compare(
-      password,
-      loggedInUser.password
-    );
+    const isCorrect = await bcrypt.compare(password, loggedInUser.password);
     if (isCorrect) {
       const newPasswordHash = await bcrypt.hash(newPassword, 10);
       loggedInUser.password = newPasswordHash;
       await loggedInUser.save();
       res.json({
         message: "password update successfully",
-        data: loggedInUser
-      })
+        data: loggedInUser,
+      });
     } else {
       throw new Error("password is not matched");
     }

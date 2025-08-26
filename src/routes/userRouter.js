@@ -70,7 +70,7 @@ userRouter.get("/feed", userAuth, async (req, res) => {
     let limit = req.query.limit || 10;
     limit = limit > 50 ? 50 : limit;
     const skip = (page - 1) * limit;
-    const SAFE_USER_FIELDS = "_id firstName lastName about";
+    const SAFE_USER_FIELDS = "_id firstName lastName about photoUrl skills";
     const connectionRequests = await connectionRequest
       .find({
         $or: [{ toUserId: loggedInUser._id }, { fromUserId: loggedInUser._id }],
