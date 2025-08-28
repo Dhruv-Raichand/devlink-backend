@@ -6,7 +6,8 @@ const User = require("../models/user");
 
 userRouter.get("/user/requests/received", userAuth, async (req, res) => {
   try {
-    const SAFE_USER_FIELDS = "_id firstName lastName about";
+    const SAFE_USER_FIELDS =
+      "_id firstName lastName about photoUrl skills age gender";
     const loggedInUser = req.user;
     const requests = await connectionRequest
       .find({ toUserId: loggedInUser._id, status: "interested" })
@@ -32,7 +33,8 @@ userRouter.get("/user/requests/received", userAuth, async (req, res) => {
 userRouter.get("/user/connections", userAuth, async (req, res) => {
   try {
     const loggedInUser = req.user;
-    const SAFE_USER_FIELDS = "_id firstName lastName about";
+    const SAFE_USER_FIELDS =
+      "_id firstName lastName about photoUrl skills age gender";
     const connections = await connectionRequest
       .find({
         $or: [
