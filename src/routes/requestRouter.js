@@ -76,13 +76,11 @@ requestRouter.post(
       if (!validator.isMongoId(requestId)) {
         throw new Error("Invalid requestId");
       }
-      const request = await connectionRequest.findOne(
-        {
-          _id: requestId,
-          toUserId,
-          status: "interested",
-        }
-      );
+      const request = await connectionRequest.findOne({
+        _id: requestId,
+        toUserId,
+        status: "interested",
+      });
       if (!request) {
         throw new Error("No request found");
       }
@@ -90,7 +88,7 @@ requestRouter.post(
       const data = await request.save();
       res.json({
         message: "Connection request " + status,
-        data
+        data: data,
       });
     } catch (err) {
       res.status(400).json({
