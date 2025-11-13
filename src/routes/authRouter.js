@@ -29,6 +29,11 @@ authRouter.post("/signup", async (req, res) => {
       data: signedUser,
     });
   } catch (err) {
+    if (err.code === 11000) {
+      return res.status(400).json({
+        message: "This Email is already registered",
+      });
+    }
     res.status(400).json({
       message: "Error in saving the user",
       errMessage: err.message,
