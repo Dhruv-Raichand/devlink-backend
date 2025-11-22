@@ -29,11 +29,11 @@ const chatRouter = require("./routes/chatRouter");
 const initializeSocket = require("./utils/socket");
 
 // Mount routes
-app.use("/auth", authRouter);
-app.use("/profile", profileRouter);
-app.use("/requests", requestRouter);
-app.use("/users", userRouter);
-app.use("/chat", chatRouter);
+app.use("/", authRouter);
+app.use("/", profileRouter);
+app.use("/", requestRouter);
+app.use("/", userRouter);
+app.use("/", chatRouter);
 
 // 404 Handler
 app.use((req, res) => {
