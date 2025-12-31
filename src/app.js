@@ -5,8 +5,6 @@ const cors = require("cors");
 const http = require("http");
 require("dotenv").config();
 
-require("./utils/cronJob");
-
 const app = express();
 
 // Middleware
@@ -48,6 +46,8 @@ initializeSocket(server);
 connectDB()
   .then(() => {
     console.log("Database Connection Established.");
+
+    require("./utils/cronJob");
 
     const PORT = process.env.PORT || 3000;
 
