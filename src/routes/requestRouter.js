@@ -5,7 +5,7 @@ const User = require("../models/user");
 const validator = require("validator");
 const connectionRequest = require("../models/connection");
 
-const sendEmail = require("../utils/sendEmail");
+// const sendEmail = require("../utils/sendEmail");
 
 //Send Connection Request
 requestRouter.post(
@@ -53,13 +53,13 @@ requestRouter.post(
 
       const Data = await request.save();
 
-      if (status === "interested") {
-        const emailRes = await sendEmail.run(
-          "Connection Request Sent Successfully",
-          `Dear ${user?.firstName}, Your Connection Request is Successfully sent to ${toUser?.firstName} ${toUser?.lastName}`
-        );
-        console.log(emailRes);
-      }
+      // if (status === "interested") {
+      //   const emailRes = await sendEmail.run(
+      //     "Connection Request Sent Successfully",
+      //     `Dear ${user?.firstName}, Your Connection Request is Successfully sent to ${toUser?.firstName} ${toUser?.lastName}`
+      //   );
+      //   console.log(emailRes);
+      // }
 
       res.json({
         message: user.firstName + " " + status + " " + toUser.firstName,
