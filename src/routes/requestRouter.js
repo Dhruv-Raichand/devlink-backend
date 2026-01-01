@@ -94,8 +94,11 @@ requestRouter.post(
         status: "interested",
       });
       if (!request) {
-        throw new Error("No request found");
+        return res
+          .status(400)
+          .json({ message: "Request already reviewed or not found" });
       }
+
       request.status = status;
       const data = await request.save();
       res.json({
