@@ -48,11 +48,13 @@ const initializeSocket = (server) => {
           });
 
           await chat.save();
+          const savedMessage = chat.messages[chat.messages.length - 1];
           io.to(roomId).emit("messageReceived", {
             firstName,
             lastName,
             photoUrl,
             text,
+            createdAt: savedMessage.createdAt, // send the DB timestamp
           });
         } catch (err) {
           console.log(err);
