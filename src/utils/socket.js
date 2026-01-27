@@ -12,7 +12,8 @@ const getSecretRoomId = (userId, targetUserId) => {
 const initializeSocket = (server) => {
   const io = socket(server, {
     cors: {
-      origin: "http://localhost:5173",
+      origin: process.env.FRONTEND_URL,
+      credentials: true,
     },
   });
 
@@ -56,7 +57,7 @@ const initializeSocket = (server) => {
         } catch (err) {
           console.log(err);
         }
-      }
+      },
     );
     socket.on("disconnect", () => {});
   });
