@@ -1,6 +1,6 @@
 const validator = require("validator");
 
-function validate(data) {
+function validate(data: any) {
   const { firstName, lastName, emailId, password } = data;
   if (!firstName || !lastName) {
     throw new Error("Name cannot be Empty");
@@ -13,7 +13,7 @@ function validate(data) {
   }
 }
 
-function validateUserEdit(data) {
+function validateUserEdit(data: Record<string, any>) {
   const allowedEditField = [
     "firstName",
     "lastName",
@@ -33,3 +33,4 @@ module.exports = {
   validate,
   validateUserEdit,
 };
+export{};
