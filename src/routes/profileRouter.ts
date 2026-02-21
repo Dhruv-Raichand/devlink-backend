@@ -6,16 +6,16 @@ const bcrypt = require("bcrypt");
 const validator = require("validator");
 
 //profile
-profileRouter.get("/profile", userAuth, async (req, res) => {
+profileRouter.get("/profile", userAuth, async (req:any, res:any): Promise<void> => {
   try {
     const user = req.user;
     res.send(user);
-  } catch (err) {
+  } catch (err: any) {
     res.status(400).send("ERROR: " + err.message);
   }
 });
 //edit
-profileRouter.patch("/profile/edit", userAuth, async (req, res) => {
+profileRouter.patch("/profile/edit", userAuth, async (req:any, res:any): Promise<void> => {
   try {
     if (!validateUserEdit(req.body)) {
       throw new Error("Invalid update request");
@@ -31,12 +31,12 @@ profileRouter.patch("/profile/edit", userAuth, async (req, res) => {
         data: loggedInUser,
       });
     }
-  } catch (err) {
+  } catch (err:any) {
     res.status(400).send("ERROR: " + err.message);
   }
 });
 //change password
-profileRouter.patch("/profile/password", userAuth, async (req, res) => {
+profileRouter.patch("/profile/password", userAuth, async (req: any, res:any): Promise<void> => {
   try {
     const { password, newPassword } = req.body;
     if (!password || !newPassword) {
@@ -59,9 +59,10 @@ profileRouter.patch("/profile/password", userAuth, async (req, res) => {
     } else {
       throw new Error("password is not matched");
     }
-  } catch (err) {
+  } catch (err: any) {
     res.status(400).send("Error: " + err.message);
   }
 });
 
 module.exports = profileRouter;
+export{};
