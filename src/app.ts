@@ -34,7 +34,7 @@ app.use("/", userRouter);
 app.use("/", chatRouter);
 
 // 404 Handler
-app.use((req, res) => {
+app.use((req: any, res: any) => {
   res.status(404).send("Not Found");
 });
 
@@ -55,6 +55,6 @@ connectDB()
       console.log(`Server is successfully listening on port ${PORT}...`);
     });
   })
-  .catch((err) => {
+  .catch((err: any) => {
     console.error("Database Connection Failed!!!", err);
   });

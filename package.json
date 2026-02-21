@@ -1,10 +1,11 @@
 {
-  "name": "dinder",
+  "name": "devlink-backend",
   "version": "1.0.0",
-  "description": "tinder for devs",
+  "description": "Developer Networking Platform",
   "keywords": [
     "nodejs",
-    "javascript"
+    "javascript",
+    "typescript"
   ],
   "license": "ISC",
   "author": "Arthur Morgan",
