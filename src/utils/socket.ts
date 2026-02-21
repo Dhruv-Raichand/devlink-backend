@@ -2,14 +2,14 @@ const socket = require("socket.io");
 const crypto = require("crypto");
 const Chat = require("../models/chat");
 
-const getSecretRoomId = (userId, targetUserId) => {
+const getSecretRoomId = (userId:string, targetUserId: string): string => {
   return crypto
     .createHash("sha256")
     .update([userId, targetUserId].sort().join("_"))
     .digest("hex");
 };
 
-const initializeSocket = (server) => {
+const initializeSocket = (server: any): void => {
   const io = socket(server, {
     cors: {
       origin: process.env.FRONTEND_URL,
@@ -17,15 +17,15 @@ const initializeSocket = (server) => {
     },
   });
 
-  io.on("connection", (socket) => {
-    socket.on("joinChat", ({ firstName, userId, targetUserId }) => {
+  io.on("connection", (socket: any) => {
+    socket.on("joinChat", ({ firstName, userId, targetUserId }: any) => {
       const roomId = getSecretRoomId(userId, targetUserId);
       console.log(firstName + " Joining Room: " + roomId);
       socket.join(roomId);
     });
     socket.on(
       "sendMessage",
-      async ({ firstName, lastName, photoUrl, userId, targetUserId, text }) => {
+      async ({ firstName, lastName, photoUrl, userId, targetUserId, text }: any) => {
         try {
           const roomId = getSecretRoomId(userId, targetUserId);
           console.log(firstName + ": " + text);
@@ -65,3 +65,4 @@ const initializeSocket = (server) => {
   });
 };
 module.exports = initializeSocket;
+export{};
