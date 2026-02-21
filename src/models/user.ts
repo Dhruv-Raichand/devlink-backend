@@ -20,7 +20,7 @@ const userSchema = mongoose.Schema(
       unique: true,
       lowercase: true,
       trim: true,
-      validate(value) {
+      validate(value: string) {
         if (!validator.isEmail(value)) {
           throw new Error("Invalid Email!!!");
         }
@@ -29,7 +29,7 @@ const userSchema = mongoose.Schema(
     password: {
       type: String,
       required: true,
-      validate(value) {
+      validate(value: string) {
         if (!validator.isStrongPassword(value)) {
           throw new Error("Weak Password");
         }
@@ -45,7 +45,7 @@ const userSchema = mongoose.Schema(
         values: ["male", "female", "others"],
         message: "{VALUE} is not a valid gender",
       },
-      // validate(value) {
+      // validate(value: string) {
       //     if (!["male", "female", "others"].includes(value)){
       //         throw new Error("Not Valid Gender")
       //     }
@@ -55,7 +55,7 @@ const userSchema = mongoose.Schema(
       type: String,
       default:
         "https://storage.needpix.com/rsynced_images/blank-profile-picture-973460_1280.png",
-      validate(value) {
+      validate(value: string) {
         if (!validator.isURL(value)) {
           throw new Error("Invalid photoUrl");
         }
@@ -68,7 +68,7 @@ const userSchema = mongoose.Schema(
     },
     skills: {
       type: [String],
-      validate(value) {
+      validate(value: string[]) {
         if (value.length > 10) {
           throw new Error("Skills cannot be more than 10");
         }
@@ -78,7 +78,7 @@ const userSchema = mongoose.Schema(
   { timestamps: true }
 );
 
-userSchema.methods.getJWT = async function () {
+userSchema.methods.getJWT = async function (): Promise<string> {
   const user = this;
   const token = jwt.sign({ _id: user._id }, process.env.JWT_SECRET_KEY, {
     expiresIn: "7d",
@@ -86,7 +86,7 @@ userSchema.methods.getJWT = async function () {
   return token;
 };
 
-userSchema.methods.comparePasswords = async function (passwordByUser) {
+userSchema.methods.comparePasswords = async function (passwordByUser: string): Promise<boolean> {
   const user = this;
   const passwordHash = user.password;
   const isCorrect = await bcrypt.compare(passwordByUser, passwordHash);

@@ -22,7 +22,7 @@ cron.schedule(
       }).populate("toUserId");
 
       const listOfEmails = [
-        ...new Set(pendingRequests.map((req) => req.toUserId.emailId)),
+        ...new Set(pendingRequests.map((req: any) => req.toUserId.emailId)),
       ];
       console.log(listOfEmails);
       for (const email of listOfEmails) {

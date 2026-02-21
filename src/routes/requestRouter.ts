@@ -1,38 +1,38 @@
-const Express = require("express");
+const Express = require('express');
 const requestRouter = Express.Router();
-const { userAuth } = require("../middlewares/auth");
-const User = require("../models/user");
-const validator = require("validator");
-const connectionRequest = require("../models/connection");
+const { userAuth } = require('../middlewares/auth');
+const User = require('../models/user');
+const validator = require('validator');
+const connectionRequest = require('../models/connection');
 
 // const sendEmail = require("../utils/sendEmail");
 
 //Send Connection Request
 requestRouter.post(
-  "/request/send/:status/:toUserId",
+  '/request/send/:status/:toUserId',
   userAuth,
-  async (req, res) => {
+  async (req: any, res: any): Promise<void> => {
     try {
       const { status, toUserId } = req.params;
       const user = req.user;
       const fromUserId = user._id;
 
-      const allowed_status = ["interested", "ignored"];
+      const allowed_status = ['interested', 'ignored'];
       if (!allowed_status.includes(status)) {
-        throw new Error("Invalid Status Type " + status);
+        throw new Error('Invalid Status Type ' + status);
       }
 
       if (!validator.isMongoId(toUserId)) {
-        throw new Error("Invalid userId");
+        throw new Error('Invalid userId');
       }
 
-      if (fromUserId === toUserId) {
-        throw new Error("sending request to yourself is not allowed");
+      if (fromUserId.toString() === toUserId) {
+        throw new Error('sending request to yourself is not allowed');
       }
 
       const toUser = await User.findOne({ _id: toUserId });
       if (!toUser) {
-        throw new Error("User not found");
+        throw new Error('User not found');
       }
 
       const validateRequest = await connectionRequest.findOne({
@@ -42,7 +42,7 @@ requestRouter.post(
         ],
       });
       if (validateRequest) {
-        throw new Error("request already exist");
+        throw new Error('request already exist');
       }
 
       const request = new connectionRequest({
@@ -62,11 +62,13 @@ requestRouter.post(
       // }
 
       res.json({
-        message: user.firstName + " " + status + " " + toUser.firstName,
-        Data,
+        success: true,
+        message: `${user.firstName} ${status} ${toUser.firstName}`,
+        data: Data,
       });
-    } catch (err) {
+    } catch (err: any) {
       res.status(400).json({
+        success: false,
         message: err.message,
       });
     }
@@ -75,38 +77,42 @@ requestRouter.post(
 
 //accept or reject recieved request
 requestRouter.post(
-  "/request/review/:status/:requestId",
+  '/request/review/:status/:requestId',
   userAuth,
-  async (req, res) => {
+  async (req: any, res: any): Promise<void> => {
     try {
       const { status, requestId } = req.params;
       const toUserId = req.user._id;
-      const allowedStatuses = ["accepted", "rejected"];
+      const allowedStatuses = ['accepted', 'rejected'];
       if (!allowedStatuses.includes(status)) {
-        throw new Error("Invalid Request " + status);
+        throw new Error('Invalid Request ' + status);
       }
       if (!validator.isMongoId(requestId)) {
-        throw new Error("Invalid requestId");
+        throw new Error('Invalid requestId');
       }
       const request = await connectionRequest.findOne({
         _id: requestId,
         toUserId,
-        status: "interested",
+        status: 'interested',
       });
       if (!request) {
-        return res
-          .status(400)
-          .json({ message: "Request already reviewed or not found" });
+        return res.json({
+          success: true,
+          message: 'No pending requests to review',
+          data: [],
+        });
       }
 
       request.status = status;
       const data = await request.save();
       res.json({
-        message: "Connection request " + status,
+        success: true,
+        message: `Connection request  ${status}`,
         data: data,
       });
-    } catch (err) {
+    } catch (err: any) {
       res.status(400).json({
+        success: false,
         message: err.message,
       });
     }
@@ -114,3 +120,4 @@ requestRouter.post(
 );
 
 module.exports = requestRouter;
+export {};

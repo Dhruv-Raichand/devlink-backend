@@ -1,11 +1,12 @@
-const Express = require("express");
+const Express = require('express');
 const authRouter = Express.Router();
-const User = require("../models/user");
-const { validate } = require("../utils/validate");
-const bcrypt = require("bcrypt");
+const User = require('../models/user');
+const { validate } = require('../utils/validate');
+const bcrypt = require('bcrypt');
+const { sanitizeUser } = require('../utils/helper');
 
 //Creating a new instance of the User model
-authRouter.post("/signup", async (req, res) => {
+authRouter.post('/signup', async (req: any, res: any): Promise<void> => {
   const { firstName, lastName, emailId, password } = req.body;
   try {
     //validate user data
@@ -21,55 +22,67 @@ authRouter.post("/signup", async (req, res) => {
     const signedUser = await user.save();
     const Token = await signedUser.getJWT();
     //Add the token to cookie and send the response back to user
-    res.cookie("token", Token, {
+    res.cookie('token', Token, {
       expires: new Date(Date.now() + 24 * 7 * 3600000),
     });
-    res.json({
-      message: "User Added Successfully!",
-      data: signedUser,
+    res.status(201).json({
+      success: true,
+      message: 'User Added Successfully!',
+      data: sanitizeUser(signedUser),
     });
-  } catch (err) {
+  } catch (err: any) {
     if (err.code === 11000) {
       return res.status(400).json({
-        message: "This Email is already registered",
+        message: 'This Email is already registered',
       });
     }
     res.status(400).json({
-      message: "Error in saving the user",
+      message: 'Error in saving the user',
       errMessage: err.message,
     });
   }
 });
 
 //login user
-authRouter.post("/login", async (req, res) => {
+authRouter.post('/login', async (req: any, res: any): Promise<void> => {
   const { emailId, password } = req.body;
   try {
     const user = await User.findOne({ emailId: emailId });
     if (!user) {
-      throw new Error("Invalid Credentials");
+      throw new Error('Invalid Credentials');
     }
     const isCorrect = await user.comparePasswords(password);
     if (isCorrect) {
       //create JWT token
       const Token = await user.getJWT();
       //Add the token to cookie and send the response back to user
-      res.cookie("token", Token, {
+      res.cookie('token', Token, {
         expires: new Date(Date.now() + 24 * 7 * 3600000),
       });
-      res.send(user);
+      res.json({
+        success: true,
+        message: 'Login Successful',
+        data: sanitizeUser(user),
+      });
     } else {
-      throw new Error("Invalid Credentials");
+      throw new Error('Invalid Credentials');
     }
-  } catch (err) {
-    res.status(400).send("Error : " + err.message);
+  } catch (err: any) {
+    res.status(400).json({
+      success: false,
+      message: err.message,
+    });
   }
 });
 
 //logout
-authRouter.post("/logout", (req, res) => {
-  res.cookie("token", null, { expires: new Date(Date.now()) });
-  res.send("logout successfull!!!");
+authRouter.post('/logout', (req: any, res: any): void => {
+  res.cookie('token', null, { expires: new Date(Date.now()) });
+  res.json({
+    success: true,
+    message: 'Logout successful',
+  });
 });
 
 module.exports = authRouter;
+export {};
