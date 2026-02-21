@@ -26,7 +26,7 @@ const connectionSchema = mongoose.Schema(
 
 connectionSchema.index({ fromUserId: 1, toUserId: 1 }, { unique: true });
 
-connectionSchema.pre("save", function (next) {
+connectionSchema.pre("save", function (this: any, next: Function) {
   // Check if the fromUserId is same as toUserId
   const connectionRequest = this;
   if (connectionRequest.fromUserId.equals(connectionRequest.toUserId)) {
@@ -37,3 +37,5 @@ connectionSchema.pre("save", function (next) {
 });
 
 module.exports = mongoose.model("ConnectionModel", connectionSchema);
+
+export {};
