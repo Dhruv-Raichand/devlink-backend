@@ -1,7 +1,7 @@
 const { SendEmailCommand } = require("@aws-sdk/client-ses");
 const { sesClient } = require("./sesClient.js");
 
-const createSendEmailCommand = (subject, body, toAddress, fromAddress) => {
+const createSendEmailCommand = (subject: string, body: string, toAddress: string, fromAddress: string) => {
   return new SendEmailCommand({
     Destination: {
       CcAddresses: [],
@@ -30,7 +30,7 @@ const createSendEmailCommand = (subject, body, toAddress, fromAddress) => {
   });
 };
 
-const run = async (subject, body) => {
+const run = async (subject: string, body: string): Promise<any> => {
   const sendEmailCommand = createSendEmailCommand(
     subject,
     body,
@@ -51,3 +51,4 @@ const run = async (subject, body) => {
 
 // snippet-end:[ses.JavaScript.email.sendEmailV3]
 module.exports = { run };
+export{};
