@@ -11,7 +11,7 @@ const connectionRequest = require("../models/connection");
 requestRouter.post(
   "/request/send/:status/:toUserId",
   userAuth,
-  async (req, res) => {
+  async (req: any, res: any): Promise<void> => {
     try {
       const { status, toUserId } = req.params;
       const user = req.user;
@@ -65,7 +65,7 @@ requestRouter.post(
         message: user.firstName + " " + status + " " + toUser.firstName,
         Data,
       });
-    } catch (err) {
+    } catch (err: any) {
       res.status(400).json({
         message: err.message,
       });
@@ -77,7 +77,7 @@ requestRouter.post(
 requestRouter.post(
   "/request/review/:status/:requestId",
   userAuth,
-  async (req, res) => {
+  async (req:any, res:any): Promise<void> => {
     try {
       const { status, requestId } = req.params;
       const toUserId = req.user._id;
@@ -105,7 +105,7 @@ requestRouter.post(
         message: "Connection request " + status,
         data: data,
       });
-    } catch (err) {
+    } catch (err: any) {
       res.status(400).json({
         message: err.message,
       });
@@ -114,3 +114,4 @@ requestRouter.post(
 );
 
 module.exports = requestRouter;
+export{};
