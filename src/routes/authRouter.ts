@@ -5,7 +5,7 @@ const { validate } = require("../utils/validate");
 const bcrypt = require("bcrypt");
 
 //Creating a new instance of the User model
-authRouter.post("/signup", async (req, res) => {
+authRouter.post("/signup", async (req: any, res: any): Promise<void> => {
   const { firstName, lastName, emailId, password } = req.body;
   try {
     //validate user data
@@ -28,7 +28,7 @@ authRouter.post("/signup", async (req, res) => {
       message: "User Added Successfully!",
       data: signedUser,
     });
-  } catch (err) {
+  } catch (err: any) {
     if (err.code === 11000) {
       return res.status(400).json({
         message: "This Email is already registered",
@@ -42,7 +42,7 @@ authRouter.post("/signup", async (req, res) => {
 });
 
 //login user
-authRouter.post("/login", async (req, res) => {
+authRouter.post("/login", async (req: any, res: any): Promise<void> => {
   const { emailId, password } = req.body;
   try {
     const user = await User.findOne({ emailId: emailId });
@@ -61,15 +61,16 @@ authRouter.post("/login", async (req, res) => {
     } else {
       throw new Error("Invalid Credentials");
     }
-  } catch (err) {
+  } catch (err: any) {
     res.status(400).send("Error : " + err.message);
   }
 });
 
 //logout
-authRouter.post("/logout", (req, res) => {
+authRouter.post("/logout", (req: any, res: any): void => {
   res.cookie("token", null, { expires: new Date(Date.now()) });
   res.send("logout successfull!!!");
 });
 
 module.exports = authRouter;
+export{};
