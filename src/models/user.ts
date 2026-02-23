@@ -1,9 +1,28 @@
-const mongoose = require("mongoose");
-const validator = require("validator");
-const jwt = require("jsonwebtoken");
-const bcrypt = require("bcrypt");
+import mongoose, { Document, Model } from 'mongoose';
+import validator from 'validator';
+import jwt from 'jsonwebtoken';
+import bcrypt from 'bcrypt';
 
-const userSchema = mongoose.Schema(
+export interface IUser {
+  firstName: string;
+  lastName?: string;
+  emailId: string;
+  password: string;
+  age: number;
+  gender: 'male' | 'female' | 'others';
+  photoUrl: string;
+  about: string;
+  skills: string[];
+}
+
+interface IUserMethods {
+  getJWT(): Promise<string>;
+  comparePassword(passwordByUser: string): Promise<boolean>;
+}
+
+interface IUserDocument extends IUser, IUserMethods, Document {}
+
+const userSchema = new mongoose.Schema<IUserDocument>(
   {
     firstName: {
       type: String,
@@ -22,7 +41,7 @@ const userSchema = mongoose.Schema(
       trim: true,
       validate(value: string) {
         if (!validator.isEmail(value)) {
-          throw new Error("Invalid Email!!!");
+          throw new Error('Invalid Email');
         }
       },
     },
@@ -31,7 +50,7 @@ const userSchema = mongoose.Schema(
       required: true,
       validate(value: string) {
         if (!validator.isStrongPassword(value)) {
-          throw new Error("Weak Password");
+          throw new Error('Weak Password');
         }
       },
     },
@@ -42,8 +61,8 @@ const userSchema = mongoose.Schema(
     gender: {
       type: String,
       enum: {
-        values: ["male", "female", "others"],
-        message: "{VALUE} is not a valid gender",
+        values: ['male', 'female', 'others'],
+        message: '{VALUE} is not a valid gender',
       },
       // validate(value: string) {
       //     if (!["male", "female", "others"].includes(value)){
@@ -54,23 +73,23 @@ const userSchema = mongoose.Schema(
     photoUrl: {
       type: String,
       default:
-        "https://storage.needpix.com/rsynced_images/blank-profile-picture-973460_1280.png",
+        'https://storage.needpix.com/rsynced_images/blank-profile-picture-973460_1280.png',
       validate(value: string) {
         if (!validator.isURL(value)) {
-          throw new Error("Invalid photoUrl");
+          throw new Error('Invalid photoUrl');
         }
       },
     },
     about: {
       type: String,
-      default: "This is the default about section.",
+      default: 'This is the default about section.',
       maxLength: 50,
     },
     skills: {
       type: [String],
       validate(value: string[]) {
         if (value.length > 10) {
-          throw new Error("Skills cannot be more than 10");
+          throw new Error('Skills cannot be more than 10');
         }
       },
     },
@@ -79,18 +98,18 @@ const userSchema = mongoose.Schema(
 );
 
 userSchema.methods.getJWT = async function (): Promise<string> {
-  const user = this;
-  const token = jwt.sign({ _id: user._id }, process.env.JWT_SECRET_KEY, {
-    expiresIn: "7d",
+  const token = jwt.sign({ _id: this._id }, process.env.JWT_SECRET_KEY!, {
+    expiresIn: '7d',
   });
   return token;
 };
 
-userSchema.methods.comparePasswords = async function (passwordByUser: string): Promise<boolean> {
-  const user = this;
-  const passwordHash = user.password;
-  const isCorrect = await bcrypt.compare(passwordByUser, passwordHash);
-  return isCorrect;
+userSchema.methods.comparePasswords = async function (
+  passwordByUser: string
+): Promise<boolean> {
+  return bcrypt.compare(passwordByUser, this.password);
 };
 
-module.exports = mongoose.model("User", userSchema);
+const User = mongoose.model<IUserDocument>('User', userSchema);
+
+export default User;

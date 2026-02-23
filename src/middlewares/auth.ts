@@ -1,7 +1,12 @@
-const jwt = require('jsonwebtoken');
-const User = require('../models/user');
+import jwt, { JwtPayload } from 'jsonwebtoken';
+import User from '../models/user.js';
+import { Response, Request, NextFunction } from 'express';
 
-const userAuth = async (req: any, res: any, next: Function) => {
+export const userAuth = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   try {
     const { token } = req.cookies;
     if (!token) {
@@ -11,20 +16,31 @@ const userAuth = async (req: any, res: any, next: Function) => {
       });
     }
 
-    const decodedMessage = jwt.verify(token, process.env.JWT_SECRET_KEY);
-    const { _id } = decodedMessage;
+    const decoded = jwt.verify(
+      token,
+      process.env.JWT_SECRET_KEY!
+    ) as JwtPayload;
 
-    const user = await User.findById(_id);
+    if (typeof decoded === 'object' && decoded !== null && '_id' in decoded) {
+      const _id = decoded._id as string;
 
-    if (!user) {
+      const user = await User.findById(_id);
+
+      if (!user) {
+        return res.status(401).json({
+          success: false,
+          message: 'Invalid authentication token',
+        });
+      }
+
+      req.user = user;
+      next();
+    } else {
       return res.status(401).json({
         success: false,
-        message: 'Invalid authentication token',
+        message: 'Invalid authentication token payload',
       });
     }
-
-    req.user = user;
-    next();
   } catch (err: any) {
     console.error('Auth error:', err.message);
     res.status(401).json({
@@ -33,8 +49,3 @@ const userAuth = async (req: any, res: any, next: Function) => {
     });
   }
 };
-
-module.exports = {
-  userAuth,
-};
-export {};
