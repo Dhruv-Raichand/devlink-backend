@@ -1,4 +1,4 @@
-import mongoose, { Document, Model } from 'mongoose';
+import mongoose, { Document } from 'mongoose';
 import validator from 'validator';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
@@ -8,16 +8,16 @@ export interface IUser {
   lastName?: string;
   emailId: string;
   password: string;
-  age: number;
-  gender: 'male' | 'female' | 'others';
+  age?: number;
+  gender?: 'male' | 'female' | 'others';
   photoUrl: string;
   about: string;
-  skills: string[];
+  skills?: string[];
 }
 
 interface IUserMethods {
   getJWT(): Promise<string>;
-  comparePassword(passwordByUser: string): Promise<boolean>;
+  comparePasswords(passwordByUser: string): Promise<boolean>;
 }
 
 interface IUserDocument extends IUser, IUserMethods, Document {}
@@ -30,9 +30,9 @@ const userSchema = new mongoose.Schema<IUserDocument>(
       minLength: 3,
       maxLength: 20,
     },
-    lastName: {
-      type: String,
-    },
+
+    lastName: String,
+
     emailId: {
       type: String,
       required: true,
@@ -45,6 +45,7 @@ const userSchema = new mongoose.Schema<IUserDocument>(
         }
       },
     },
+
     password: {
       type: String,
       required: true,
@@ -54,22 +55,26 @@ const userSchema = new mongoose.Schema<IUserDocument>(
         }
       },
     },
+
     age: {
       type: Number,
       min: 18,
     },
+
     gender: {
       type: String,
       enum: {
         values: ['male', 'female', 'others'],
         message: '{VALUE} is not a valid gender',
       },
+
       // validate(value: string) {
       //     if (!["male", "female", "others"].includes(value)){
       //         throw new Error("Not Valid Gender")
       //     }
       // }
     },
+
     photoUrl: {
       type: String,
       default:
@@ -80,13 +85,16 @@ const userSchema = new mongoose.Schema<IUserDocument>(
         }
       },
     },
+
     about: {
       type: String,
       default: 'This is the default about section.',
       maxLength: 50,
     },
+
     skills: {
       type: [String],
+      default: [],
       validate(value: string[]) {
         if (value.length > 10) {
           throw new Error('Skills cannot be more than 10');
@@ -98,7 +106,9 @@ const userSchema = new mongoose.Schema<IUserDocument>(
 );
 
 userSchema.methods.getJWT = async function (): Promise<string> {
-  const token = jwt.sign({ _id: this._id }, process.env.JWT_SECRET_KEY!, {
+  if (!process.env.JWT_SECRET_KEY)
+    throw new Error('JWT_SECRET_KEY is not defined');
+  const token = jwt.sign({ _id: this._id }, process.env.JWT_SECRET_KEY, {
     expiresIn: '7d',
   });
   return token;

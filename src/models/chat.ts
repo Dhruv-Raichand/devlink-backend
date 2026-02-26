@@ -1,10 +1,22 @@
-const mongoose = require("mongoose");
+import mongoose, { Document, Types } from 'mongoose';
 
-const messageSchema = mongoose.Schema(
+interface IMessage {
+  senderId: Types.ObjectId;
+  text: string;
+}
+
+interface IChat {
+  participants: Types.ObjectId[];
+  messages: IMessage[];
+}
+
+interface IChatDocument extends IChat, Document {}
+
+const messageSchema = new mongoose.Schema<IMessage>(
   {
     senderId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+      ref: 'User',
       required: true,
     },
     text: {
@@ -15,12 +27,13 @@ const messageSchema = mongoose.Schema(
   { timestamps: true }
 );
 
-const chatSchema = mongoose.Schema({
+const chatSchema = new mongoose.Schema<IChatDocument>({
   participants: [
-    { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+    { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   ],
   messages: [messageSchema],
 });
 
-module.exports = mongoose.model("Chat", chatSchema);
-export{};
+const Chat = mongoose.model<IChatDocument>('Chat', chatSchema);
+
+export default Chat;

@@ -1,23 +1,36 @@
-const mongoose = require("mongoose");
+import mongoose, { Document, Types } from 'mongoose';
 
-const connectionSchema = mongoose.Schema(
+export type ConnectionStatus =
+  | 'interested'
+  | 'ignored'
+  | 'accepted'
+  | 'rejected';
+interface IConnectionModel {
+  fromUserId: Types.ObjectId;
+  toUserId: Types.ObjectId;
+  status: ConnectionStatus;
+}
+
+interface IConnectionModelDocument extends IConnectionModel, Document {}
+
+const connectionSchema = new mongoose.Schema<IConnectionModelDocument>(
   {
     fromUserId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+      ref: 'User',
       required: true,
     },
     toUserId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+      ref: 'User',
       required: true,
     },
     status: {
       type: String,
       required: true,
       enum: {
-        values: ["interested", "ignored", "accepted", "rejected"],
-        mesaage: "{VALUE} is not a valid status",
+        values: ['interested', 'ignored', 'accepted', 'rejected'],
+        message: '{VALUE} is not a valid status',
       },
     },
   },
@@ -26,16 +39,17 @@ const connectionSchema = mongoose.Schema(
 
 connectionSchema.index({ fromUserId: 1, toUserId: 1 }, { unique: true });
 
-connectionSchema.pre("save", function (this: any, next: Function) {
+connectionSchema.pre('save', function (next) {
   // Check if the fromUserId is same as toUserId
-  const connectionRequest = this;
-  if (connectionRequest.fromUserId.equals(connectionRequest.toUserId)) {
-    throw new Error("Cannot send request to yourself!");
+  if (this.fromUserId.equals(this.toUserId)) {
+    throw new Error('Cannot send request to yourself!');
   }
-
   next();
 });
 
-module.exports = mongoose.model("ConnectionModel", connectionSchema);
+const ConnectionModel = mongoose.model<IConnectionModelDocument>(
+  'ConnectionModel',
+  connectionSchema
+);
 
-export {};
+export default ConnectionModel;
