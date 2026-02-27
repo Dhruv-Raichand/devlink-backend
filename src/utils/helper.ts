@@ -6,4 +6,4 @@ const sanitizeUser = (user: any) => {
 
   return userObj;
 };
-module.exports = { sanitizeUser };
+export default sanitizeUser;

@@ -1,10 +1,10 @@
-const Express = require('express');
+import Express from 'express';
 const profileRouter = Express.Router();
-const { userAuth } = require('../middlewares/auth');
-const { validateUserEdit } = require('../utils/validate');
-const bcrypt = require('bcrypt');
-const validator = require('validator');
-const { sanitizeUser } = require('../utils/helper');
+import userAuth from '../middlewares/auth.js';
+import { validateUserEdit } from '../utils/validate.js';
+import bcrypt from 'bcrypt';
+import validator from 'validator';
+import sanitizeUser from '../utils/helper.js';
 
 //profile
 profileRouter.get(
@@ -93,5 +93,4 @@ profileRouter.patch(
   }
 );
 
-module.exports = profileRouter;
-export {};
+export default profileRouter;

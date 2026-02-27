@@ -1,7 +1,7 @@
-const express = require('express');
-const { userAuth } = require('../middlewares/auth');
+import express from 'express';
 const chatRouter = express.Router();
-const Chat = require('../models/chat');
+import userAuth from '../middlewares/auth.js';
+import Chat from '../models/chat.js';
 
 chatRouter.get(
   '/chat/:targetUserId',
@@ -38,5 +38,4 @@ chatRouter.get(
   }
 );
 
-module.exports = chatRouter;
-export {};
+export default chatRouter;

@@ -1,18 +1,23 @@
-import mongoose, { Document, Types } from 'mongoose';
+import mongoose, { Document, Types, InferSchemaType } from 'mongoose';
 
-interface IMessage {
-  senderId: Types.ObjectId;
-  text: string;
-}
+// export interface IMessageInput {
+//   senderId: Types.ObjectId;
+//   text: string;
+// }
 
-interface IChat {
-  participants: Types.ObjectId[];
-  messages: IMessage[];
-}
+// export interface IMessage extends IMessageInput {
+//   createdAt: Date;
+//   updatedAt: Date;
+// }
 
-interface IChatDocument extends IChat, Document {}
+// interface IChat {
+//   participants: Types.ObjectId[];
+//   messages: IMessage[];
+// }
 
-const messageSchema = new mongoose.Schema<IMessage>(
+// interface IChatDocument extends IChat, Document {}
+
+const messageSchema = new mongoose.Schema(
   {
     senderId: {
       type: mongoose.Schema.Types.ObjectId,
@@ -27,13 +32,18 @@ const messageSchema = new mongoose.Schema<IMessage>(
   { timestamps: true }
 );
 
-const chatSchema = new mongoose.Schema<IChatDocument>({
+export type IMessage = InferSchemaType<typeof messageSchema>;
+export type IMessageInput = Pick<IMessage, 'senderId' | 'text'>;
+
+const chatSchema = new mongoose.Schema({
   participants: [
     { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   ],
   messages: [messageSchema],
 });
 
-const Chat = mongoose.model<IChatDocument>('Chat', chatSchema);
+export type IChat = InferSchemaType<typeof chatSchema>;
+
+const Chat = mongoose.model<IChat>('Chat', chatSchema);
 
 export default Chat;

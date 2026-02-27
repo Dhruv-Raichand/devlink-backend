@@ -2,11 +2,7 @@ import jwt, { JwtPayload } from 'jsonwebtoken';
 import User from '../models/user.js';
 import { Response, Request, NextFunction } from 'express';
 
-export const userAuth = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+const userAuth = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { token } = req.cookies;
     if (!token) {
@@ -49,3 +45,5 @@ export const userAuth = async (
     });
   }
 };
+
+export default userAuth;

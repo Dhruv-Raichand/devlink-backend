@@ -1,8 +1,8 @@
-const express = require('express');
+import express from 'express';
 const userRouter = express.Router();
-const connectionRequest = require('../models/connection');
-const { userAuth } = require('../middlewares/auth');
-const User = require('../models/user');
+import ConnectionModel from '../models/connection.js';
+import userAuth from '../middlewares/auth.js';
+import User from '../models/user.js';
 
 userRouter.get(
   '/user/requests/received',
@@ -14,9 +14,10 @@ userRouter.get(
 
       const loggedInUser = req.user;
 
-      const requests = await connectionRequest
-        .find({ toUserId: loggedInUser._id, status: 'interested' })
-        .populate('fromUserId', SAFE_USER_FIELDS);
+      const requests = await ConnectionModel.find({
+        toUserId: loggedInUser._id,
+        status: 'interested',
+      }).populate('fromUserId', SAFE_USER_FIELDS);
 
       const received = requests.map(({ _id, fromUserId }: any) => ({
         _id,
@@ -50,13 +51,12 @@ userRouter.get(
       const SAFE_USER_FIELDS =
         '_id firstName lastName about photoUrl skills age gender';
 
-      const connections = await connectionRequest
-        .find({
-          $or: [
-            { toUserId: loggedInUser._id, status: 'accepted' },
-            { fromUserId: loggedInUser._id, status: 'accepted' },
-          ],
-        })
+      const connections = await ConnectionModel.find({
+        $or: [
+          { toUserId: loggedInUser._id, status: 'accepted' },
+          { fromUserId: loggedInUser._id, status: 'accepted' },
+        ],
+      })
         .populate('fromUserId', SAFE_USER_FIELDS)
         .populate('toUserId', SAFE_USER_FIELDS);
 
@@ -100,14 +100,12 @@ userRouter.get('/feed', userAuth, async (req: any, res: any): Promise<void> => {
     const SAFE_USER_FIELDS =
       '_id firstName lastName about photoUrl skills age gender';
 
-    const connectionRequests = await connectionRequest
-      .find({
-        $or: [{ toUserId: loggedInUser._id }, { fromUserId: loggedInUser._id }],
-      })
-      .select('fromUserId toUserId');
+    const ConnectionModels = await ConnectionModel.find({
+      $or: [{ toUserId: loggedInUser._id }, { fromUserId: loggedInUser._id }],
+    }).select('fromUserId toUserId');
 
     const hideUserFromFeed = new Set<string>();
-    connectionRequests.forEach((req: any) => {
+    ConnectionModels.forEach((req: any) => {
       hideUserFromFeed.add(req.toUserId.toString());
       hideUserFromFeed.add(req.fromUserId.toString());
     });
@@ -135,5 +133,4 @@ userRouter.get('/feed', userAuth, async (req: any, res: any): Promise<void> => {
   }
 });
 
-module.exports = userRouter;
-export {};
+export default userRouter;

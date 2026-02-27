@@ -1,10 +1,10 @@
-const cron = require("node-cron");
-const ConnectionRequests = require("../models/connection");
-const sendEmail = require("./sendEmail");
-const { subDays, startOfDay, endOfDay } = require("date-fns");
+import cron from 'node-cron';
+import ConnectionModel from '../models/connection.js';
+import sendEmail from './sendEmail.js';
+import { subDays, startOfDay, endOfDay } from 'date-fns';
 
 cron.schedule(
-  "0 8 * * *",
+  '0 8 * * *',
   async () => {
     // Send emails to all  people who got requests the previous day
     try {
@@ -13,13 +13,13 @@ cron.schedule(
       const yesterdayStart = startOfDay(yesterday);
       const yesterdayEnd = endOfDay(yesterday);
 
-      const pendingRequests = await ConnectionRequests.find({
-        status: "interested",
+      const pendingRequests = await ConnectionModel.find({
+        status: 'interested',
         createdAt: {
           $gte: yesterdayStart,
           $lt: yesterdayEnd,
         },
-      }).populate("toUserId");
+      }).populate('toUserId');
 
       const listOfEmails = [
         ...new Set(pendingRequests.map((req: any) => req.toUserId.emailId)),
@@ -27,9 +27,9 @@ cron.schedule(
       console.log(listOfEmails);
       for (const email of listOfEmails) {
         try {
-          const res = await sendEmail.run(
+          const res = await sendEmail(
             `New Friend Requests pending for ${email}`,
-            "There are so many friend requests pending, Please login to the LinkDev.online and accept or reject requests"
+            'There are so many friend requests pending, Please login to the LinkDev.online and accept or reject requests'
           );
           console.log(res);
         } catch (err) {
@@ -41,6 +41,6 @@ cron.schedule(
     }
   },
   {
-    timezone: "Asia/Kolkata", // change to your timezone
+    timezone: 'Asia/Kolkata', // change to your timezone
   }
 );

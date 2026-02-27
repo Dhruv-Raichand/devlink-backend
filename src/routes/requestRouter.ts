@@ -1,11 +1,10 @@
-const Express = require('express');
+import Express from 'express';
 const requestRouter = Express.Router();
-const { userAuth } = require('../middlewares/auth');
-const User = require('../models/user');
-const validator = require('validator');
-const connectionRequest = require('../models/connection');
-
-// const sendEmail = require("../utils/sendEmail");
+import userAuth from '../middlewares/auth.js';
+import User from '../models/user.js';
+import validator from 'validator';
+import ConnectionModel from '../models/connection.js';
+// import sendEmail from '../utils/sendEmail.js'
 
 //Send Connection Request
 requestRouter.post(
@@ -35,7 +34,7 @@ requestRouter.post(
         throw new Error('User not found');
       }
 
-      const validateRequest = await connectionRequest.findOne({
+      const validateRequest = await ConnectionModel.findOne({
         $or: [
           { fromUserId, toUserId },
           { fromUserId: toUserId, toUserId: fromUserId },
@@ -45,7 +44,7 @@ requestRouter.post(
         throw new Error('request already exist');
       }
 
-      const request = new connectionRequest({
+      const request = new ConnectionModel({
         toUserId,
         fromUserId,
         status,
@@ -90,7 +89,7 @@ requestRouter.post(
       if (!validator.isMongoId(requestId)) {
         throw new Error('Invalid requestId');
       }
-      const request = await connectionRequest.findOne({
+      const request = await ConnectionModel.findOne({
         _id: requestId,
         toUserId,
         status: 'interested',
@@ -119,5 +118,4 @@ requestRouter.post(
   }
 );
 
-module.exports = requestRouter;
-export {};
+export default requestRouter;

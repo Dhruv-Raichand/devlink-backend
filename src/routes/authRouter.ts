@@ -1,9 +1,9 @@
-const Express = require('express');
+import Express from 'express';
 const authRouter = Express.Router();
-const User = require('../models/user');
-const { validate } = require('../utils/validate');
-const bcrypt = require('bcrypt');
-const { sanitizeUser } = require('../utils/helper');
+import User from '../models/user.js';
+import bcrypt from 'bcrypt';
+import { validate } from '../utils/validate.js';
+import sanitizeUser from '../utils/helper.js';
 
 //Creating a new instance of the User model
 authRouter.post('/signup', async (req: any, res: any): Promise<void> => {
@@ -84,5 +84,4 @@ authRouter.post('/logout', (req: any, res: any): void => {
   });
 });
 
-module.exports = authRouter;
-export {};
+export default authRouter;
