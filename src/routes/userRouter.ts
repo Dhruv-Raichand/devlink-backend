@@ -110,19 +110,27 @@ userRouter.get('/feed', userAuth, async (req: any, res: any): Promise<void> => {
       hideUserFromFeed.add(req.fromUserId.toString());
     });
 
-    const users = await User.find({
+    const query = {
       $and: [
         { _id: { $nin: Array.from(hideUserFromFeed) } },
         { _id: { $ne: loggedInUser._id } },
       ],
-    })
-      .select(SAFE_USER_FIELDS)
-      .skip(skip)
-      .limit(limit);
+    };
+
+    const [users, totalCount] = await Promise.all([
+      User.find(query).select(SAFE_USER_FIELDS).skip(skip).limit(limit),
+      User.countDocuments(query),
+    ]);
 
     res.json({
       success: true,
       message: users.length === 0 ? 'No new users found' : 'New users fetched',
+      pagination: {
+        totalUsers: totalCount,
+        currentPage: page,
+        totalPages: Math.ceil(totalCount / limit),
+        limit,
+      },
       data: users,
     });
   } catch (err: any) {
