@@ -4,7 +4,7 @@ export function validate(data: any) {
   const { firstName, lastName, emailId, password } = data;
   if (!firstName || !lastName) {
     throw new Error('Name cannot be Empty');
-  } else if (firstName.length < 4 && firstName.length > 20) {
+  } else if (firstName.length < 4 || firstName.length > 20) {
     throw new Error('Invalid name length');
   } else if (!validator.isEmail(emailId)) {
     throw new Error('Invalid Email');
@@ -27,10 +27,12 @@ export function validateUserEdit(data: Record<string, any>) {
   const isValidField = Object.keys(data).every((field) =>
     allowedEditField.includes(field)
   );
-  if (!isValidField) return false;
+  if (!isValidField) {
+    throw new Error('Invalid update fields');
+  }
 
   if (data.age !== undefined) {
-    if (typeof data.age !== 'number' || data.age < 13 || data.age > 100) {
+    if (typeof data.age !== 'number' || data.age < 18 || data.age > 100) {
       throw new Error('Invalid age');
     }
   }
