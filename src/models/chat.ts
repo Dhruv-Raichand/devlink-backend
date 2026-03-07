@@ -1,21 +1,4 @@
-import mongoose, { Document, Types, InferSchemaType } from 'mongoose';
-
-// export interface IMessageInput {
-//   senderId: Types.ObjectId;
-//   text: string;
-// }
-
-// export interface IMessage extends IMessageInput {
-//   createdAt: Date;
-//   updatedAt: Date;
-// }
-
-// interface IChat {
-//   participants: Types.ObjectId[];
-//   messages: IMessage[];
-// }
-
-// interface IChatDocument extends IChat, Document {}
+import mongoose, { Types, InferSchemaType } from 'mongoose';
 
 const messageSchema = new mongoose.Schema(
   {
