@@ -4,7 +4,7 @@ import userAuth from '../middlewares/auth.js';
 import User from '../models/user.js';
 import validator from 'validator';
 import ConnectionModel from '../models/connection.js';
-// import sendEmail from '../utils/sendEmail.js'
+import sendEmail from '../utils/sendEmail.js';
 
 //Send Connection Request
 requestRouter.post(
@@ -52,13 +52,13 @@ requestRouter.post(
 
       const Data = await request.save();
 
-      // if (status === "interested") {
-      //   const emailRes = await sendEmail.run(
-      //     "Connection Request Sent Successfully",
-      //     `Dear ${user?.firstName}, Your Connection Request is Successfully sent to ${toUser?.firstName} ${toUser?.lastName}`
-      //   );
-      //   console.log(emailRes);
-      // }
+      if (status === 'interested') {
+        const emailRes = await sendEmail(
+          'Connection Request Sent Successfully',
+          `Dear ${user?.firstName}, Your Connection Request is Successfully sent to ${toUser?.firstName} ${toUser?.lastName}`
+        );
+        console.log(emailRes);
+      }
 
       res.json({
         success: true,

@@ -3,7 +3,7 @@ import connectDB from './config/database.js';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import http from 'http';
-import dotenv from 'dotenv';
+import 'dotenv/config';
 
 import authRouter from './routes/authRouter.js';
 import profileRouter from './routes/profileRouter.js';
@@ -11,8 +11,6 @@ import requestRouter from './routes/requestRouter.js';
 import userRouter from './routes/userRouter.js';
 import chatRouter from './routes/chatRouter.js';
 import initializeSocket from './utils/socket.js';
-
-dotenv.config();
 
 const app = express();
 
