@@ -8,7 +8,7 @@ on:
       - 'src/**'
       - 'package.json'
       - 'package-lock.json'
-      - 'deploy.sh'
+      - 'backend-deploy.sh'
 
 jobs:
   deploy:

@@ -53,11 +53,12 @@ requestRouter.post(
       const Data = await request.save();
 
       if (status === 'interested') {
-        const emailRes = await sendEmail(
+        sendEmail(
           'Connection Request Sent Successfully',
           `Dear ${user?.firstName}, Your Connection Request is Successfully sent to ${toUser?.firstName} ${toUser?.lastName}`
-        );
-        console.log(emailRes);
+        ).catch((err) => {
+          console.error('Email failed:', err);
+        });
       }
 
       res.json({
