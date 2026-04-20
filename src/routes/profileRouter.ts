@@ -5,6 +5,7 @@ import { validateUserEdit } from '../utils/validate.js';
 import bcrypt from 'bcrypt';
 import validator from 'validator';
 import sanitizeUser from '../utils/helper.js';
+import User from '../models/user.js';
 
 //profile
 profileRouter.get(
@@ -25,6 +26,7 @@ profileRouter.get(
     }
   }
 );
+
 //edit
 profileRouter.patch(
   '/profile/edit',
@@ -56,6 +58,7 @@ profileRouter.patch(
     }
   }
 );
+
 //change password
 profileRouter.patch(
   '/profile/password',
@@ -89,6 +92,35 @@ profileRouter.patch(
         success: false,
         message: err.message,
       });
+    }
+  }
+);
+
+// view another user's profile
+profileRouter.get(
+  '/profile/:userId',
+  userAuth,
+  async (req: any, res: any): Promise<void> => {
+    try {
+      const { userId } = req.params;
+
+      if (!validator.isMongoId(userId)) {
+        throw new Error('Invalid userId');
+      }
+
+      const SAFE_USER_FIELDS =
+        '_id firstName lastName about photoUrl skills age gender';
+
+      const user = await User.findById(userId).select(SAFE_USER_FIELDS);
+
+      if (!user) {
+        res.status(404).json({ success: false, message: 'User not found' });
+        return;
+      }
+
+      res.json({ success: true, data: user });
+    } catch (err: any) {
+      res.status(400).json({ success: false, message: err.message });
     }
   }
 );
