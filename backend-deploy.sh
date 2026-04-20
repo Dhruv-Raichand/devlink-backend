@@ -1,5 +1,12 @@
 #!/bin/bash
 
+# Load nvm
+export NVM_DIR="$HOME/.nvm"
+source "$NVM_DIR/nvm.sh"
+
+# Use node
+nvm use node
+
 cd ~/devlink-backend
 
 echo "Pulling latest code..."
