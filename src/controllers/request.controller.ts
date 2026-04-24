@@ -105,3 +105,54 @@ export const reviewRequest = async (req: any, res: any): Promise<void> => {
     });
   }
 };
+
+export const withdrawRequest = async (req: any, res: any): Promise<void> => {
+  try {
+    const { requestId } = req.params;
+    const loggedInUser = req.user._id;
+
+    if (!validator.isMongoId(requestId)) {
+      throw new Error('Invalid requestId');
+    }
+
+    const request = await ConnectionModel.findOneAndDelete({
+      _id: requestId,
+      fromUserId: loggedInUser,
+      status: 'interested',
+    });
+
+    if (!request) {
+      throw new Error('Request not found or already reviewed');
+    }
+
+    res.json({ success: true, message: 'Request withdrawn' });
+  } catch (err: any) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+};
+
+export const removeConnection = async (req: any, res: any): Promise<void> => {
+  try {
+    const { userId } = req.params;
+    const loggedInUser = req.user._id;
+
+    if (!validator.isMongoId(userId)) {
+      throw new Error('Invalid userId');
+    }
+
+    const connection = await ConnectionModel.findOneAndDelete({
+      $or: [
+        { fromUserId: loggedInUser, toUserId: userId, status: 'accepted' },
+        { fromUserId: userId, toUserId: loggedInUser, status: 'accepted' },
+      ],
+    });
+
+    if (!connection) {
+      throw new Error('Connection not found');
+    }
+
+    res.json({ success: true, message: 'Connection removed' });
+  } catch (err: any) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+};

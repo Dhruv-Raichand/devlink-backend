@@ -4,6 +4,8 @@ import userAuth from '../middlewares/auth.js';
 import {
   reviewRequest,
   sendRequest,
+  removeConnection,
+  withdrawRequest,
 } from '../controllers/request.controller.js';
 
 requestRouter.post('/request/send/:status/:toUserId', userAuth, sendRequest);
@@ -13,5 +15,9 @@ requestRouter.post(
   userAuth,
   reviewRequest
 );
+
+requestRouter.delete('/request/withdraw/:requestId', userAuth, withdrawRequest);
+
+requestRouter.delete('/request/connection/:userId', userAuth, removeConnection);
 
 export default requestRouter;
