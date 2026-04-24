@@ -5,11 +5,11 @@ import cors from 'cors';
 import http from 'http';
 import 'dotenv/config';
 
-import authRouter from './routes/authRouter.js';
-import profileRouter from './routes/profileRouter.js';
-import requestRouter from './routes/requestRouter.js';
-import userRouter from './routes/userRouter.js';
-import chatRouter from './routes/chatRouter.js';
+import authRouter from './routes/auth.router.js';
+import profileRouter from './routes/profile.router.js';
+import requestRouter from './routes/request.router.js';
+import userRouter from './routes/user.router.js';
+import chatRouter from './routes/chat.router.js';
 import initializeSocket from './utils/socket.js';
 
 const app = express();

@@ -1,12 +1,9 @@
-import Express from 'express';
-const authRouter = Express.Router();
 import User from '../models/user.js';
 import bcrypt from 'bcrypt';
 import { validate } from '../utils/validate.js';
 import sanitizeUser from '../utils/helper.js';
 
-//Creating a new instance of the User model
-authRouter.post('/signup', async (req: any, res: any): Promise<void> => {
+export const signup = async (req: any, res: any): Promise<void> => {
   const { firstName, lastName, emailId, password } = req.body;
   try {
     //validate user data
@@ -41,10 +38,9 @@ authRouter.post('/signup', async (req: any, res: any): Promise<void> => {
       errMessage: err.message,
     });
   }
-});
+};
 
-//login user
-authRouter.post('/login', async (req: any, res: any): Promise<void> => {
+export const login = async (req: any, res: any): Promise<void> => {
   const { emailId, password } = req.body;
   try {
     const user = await User.findOne({ emailId: emailId });
@@ -73,15 +69,12 @@ authRouter.post('/login', async (req: any, res: any): Promise<void> => {
       message: err.message,
     });
   }
-});
+};
 
-//logout
-authRouter.post('/logout', (req: any, res: any): void => {
+export const logout = (req: any, res: any): void => {
   res.cookie('token', null, { expires: new Date(Date.now()) });
   res.json({
     success: true,
     message: 'Logout successful',
   });
-});
-
-export default authRouter;
+};
