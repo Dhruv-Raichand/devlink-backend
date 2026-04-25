@@ -94,6 +94,10 @@ export const getFeed = async (req: any, res: any): Promise<void> => {
 
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
+    const skillFilter = req.query.skills
+      ? { skills: { $in: (req.query.skills as string).split(',') } }
+      : {};
+
     const ConnectionModels = await ConnectionModel.find({
       $and: [
         {
@@ -121,6 +125,7 @@ export const getFeed = async (req: any, res: any): Promise<void> => {
       $and: [
         { _id: { $nin: Array.from(hideUserFromFeed) } },
         { _id: { $ne: loggedInUser._id } },
+        ...(Object.keys(skillFilter).length ? [skillFilter] : []),
       ],
     };
 
