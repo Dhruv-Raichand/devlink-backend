@@ -22,6 +22,7 @@ export function validateUserEdit(data: Record<string, any>) {
     'skills',
     'about',
     'photoUrl',
+    'githubUsername',
   ];
 
   const isValidField = Object.keys(data).every((field) =>

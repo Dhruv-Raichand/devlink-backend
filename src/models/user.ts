@@ -13,6 +13,7 @@ export interface IUser {
   photoUrl: string;
   about: string;
   skills?: string[];
+  githubUsername?: string;
 }
 
 interface IUserMethods {
@@ -100,6 +101,12 @@ const userSchema = new mongoose.Schema<IUserDocument>(
           throw new Error('Skills cannot be more than 10');
         }
       },
+    },
+
+    githubUsername: {
+      type: String,
+      trim: true,
+      default: null,
     },
   },
   { timestamps: true }
