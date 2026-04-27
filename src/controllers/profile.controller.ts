@@ -87,7 +87,7 @@ export const viewUserProfile = async (req: any, res: any): Promise<void> => {
     }
 
     const SAFE_USER_FIELDS =
-      '_id firstName lastName about photoUrl skills age gender';
+      '_id firstName lastName about photoUrl skills age gender githubUsername';
 
     const user = await User.findById(userId).select(SAFE_USER_FIELDS);
 

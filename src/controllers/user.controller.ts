@@ -92,8 +92,27 @@ export const getFeed = async (req: any, res: any): Promise<void> => {
     const SAFE_USER_FIELDS =
       '_id firstName lastName about photoUrl skills age gender';
 
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+
+    const skillFilter = req.query.skills
+      ? { skills: { $in: (req.query.skills as string).split(',') } }
+      : {};
+
     const ConnectionModels = await ConnectionModel.find({
-      $or: [{ toUserId: loggedInUser._id }, { fromUserId: loggedInUser._id }],
+      $and: [
+        {
+          $or: [
+            { toUserId: loggedInUser._id },
+            { fromUserId: loggedInUser._id },
+          ],
+        },
+        {
+          $or: [
+            { status: { $in: ['interested', 'accepted', 'rejected'] } },
+            { status: 'ignored', createdAt: { $gte: thirtyDaysAgo } },
+          ],
+        },
+      ],
     }).select('fromUserId toUserId');
 
     const hideUserFromFeed = new Set<string>();
@@ -106,6 +125,7 @@ export const getFeed = async (req: any, res: any): Promise<void> => {
       $and: [
         { _id: { $nin: Array.from(hideUserFromFeed) } },
         { _id: { $ne: loggedInUser._id } },
+        ...(Object.keys(skillFilter).length ? [skillFilter] : []),
       ],
     };
 
@@ -130,5 +150,35 @@ export const getFeed = async (req: any, res: any): Promise<void> => {
       success: false,
       message: err.message,
     });
+  }
+};
+
+export const getSentRequests = async (req: any, res: any): Promise<void> => {
+  try {
+    const SAFE_USER_FIELDS =
+      '_id firstName lastName about photoUrl skills age gender';
+
+    const loggedInUser = req.user;
+
+    const requests = await ConnectionModel.find({
+      fromUserId: loggedInUser._id,
+      status: 'interested',
+    }).populate('toUserId', SAFE_USER_FIELDS);
+
+    const sent = requests.map(({ _id, toUserId }: any) => ({
+      _id,
+      toUserId,
+    }));
+
+    res.json({
+      success: true,
+      message:
+        sent.length === 0
+          ? 'No sent requests yet'
+          : 'Sent requests fetched successfully',
+      data: sent,
+    });
+  } catch (err: any) {
+    res.status(400).json({ success: false, message: err.message });
   }
 };

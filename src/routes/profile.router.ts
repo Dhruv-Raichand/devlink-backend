@@ -8,12 +8,12 @@ import {
   viewUserProfile,
 } from '../controllers/profile.controller.js';
 
-profileRouter.get('/profile', userAuth, getProfile);
+profileRouter.get('/', userAuth, getProfile);
 
-profileRouter.patch('/profile/edit', userAuth, editProfile);
+profileRouter.patch('/edit', userAuth, editProfile);
 
-profileRouter.patch('/profile/password', userAuth, changePassword);
+profileRouter.patch('/password', userAuth, changePassword);
 
-profileRouter.get('/profile/:userId', userAuth, viewUserProfile);
+profileRouter.get('/:userId', userAuth, viewUserProfile);
 
 export default profileRouter;
