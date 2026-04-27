@@ -28,8 +28,8 @@ const userSchema = new mongoose.Schema<IUserDocument>(
     firstName: {
       type: String,
       required: true,
-      minLength: 3,
-      maxLength: 20,
+      minlength: 3,
+      maxlength: 20,
     },
 
     lastName: String,
@@ -78,8 +78,8 @@ const userSchema = new mongoose.Schema<IUserDocument>(
 
     photoUrl: {
       type: String,
-      default:
-        'https://storage.needpix.com/rsynced_images/blank-profile-picture-973460_1280.png',
+      // default:
+      //   'https://storage.needpix.com/rsynced_images/blank-profile-picture-973460_1280.png',
       validate(value: string) {
         if (!validator.isURL(value)) {
           throw new Error('Invalid photoUrl');
@@ -90,7 +90,7 @@ const userSchema = new mongoose.Schema<IUserDocument>(
     about: {
       type: String,
       default: 'This is the default about section.',
-      maxLength: 50,
+      maxlength: 500,
     },
 
     skills: {
@@ -98,7 +98,18 @@ const userSchema = new mongoose.Schema<IUserDocument>(
       default: [],
       validate(value: string[]) {
         if (value.length > 10) {
-          throw new Error('Skills cannot be more than 10');
+          throw new Error('Max 10 skills allowed');
+        }
+
+        const cleaned = value.map((v) => v.trim().toLowerCase());
+
+        if (cleaned.some((v) => v.length < 2)) {
+          throw new Error('Skill too short');
+        }
+
+        const unique = new Set(cleaned);
+        if (unique.size !== cleaned.length) {
+          throw new Error('Duplicate Skills are not allowed');
         }
       },
     },
