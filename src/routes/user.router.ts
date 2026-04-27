@@ -8,11 +8,11 @@ import {
   getSentRequests,
 } from '../controllers/user.controller.js';
 
-userRouter.get('/user/requests/received', userAuth, getReceivedRequests);
+userRouter.get('/requests/received', userAuth, getReceivedRequests);
 
-userRouter.get('/user/requests/sent', userAuth, getSentRequests);
+userRouter.get('/requests/sent', userAuth, getSentRequests);
 
-userRouter.get('/user/connections', userAuth, getConnections);
+userRouter.get('/connections', userAuth, getConnections);
 
 userRouter.get('/feed', userAuth, getFeed);
 

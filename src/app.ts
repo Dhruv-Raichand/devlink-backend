@@ -26,11 +26,11 @@ app.use(express.json());
 app.use(cookieParser());
 
 // Mount routes
-app.use('/', authRouter);
-app.use('/', profileRouter);
-app.use('/', requestRouter);
-app.use('/', userRouter);
-app.use('/', chatRouter);
+app.use('/auth', authRouter);
+app.use('/profile', profileRouter);
+app.use('/request', requestRouter);
+app.use('/user', userRouter);
+app.use('/chat', chatRouter);
 
 // 404 Handler
 app.use((req: any, res: any) => {
