@@ -27,14 +27,37 @@ export const sendRequest = async (req: any, res: any): Promise<void> => {
       throw new Error('User not found');
     }
 
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+
     const validateRequest = await ConnectionModel.findOne({
       $or: [
         { fromUserId, toUserId },
         { fromUserId: toUserId, toUserId: fromUserId },
       ],
+
+      $nor: [{ status: 'ignored', createdAt: { $lt: thirtyDaysAgo } }],
     });
     if (validateRequest) {
       throw new Error('request already exist');
+    }
+
+    const existingRequest = await ConnectionModel.findOne({
+      $or: [
+        { fromUserId, toUserId },
+        { fromUserId: toUserId, toUserId: fromUserId },
+      ],
+    });
+
+    if (existingRequest) {
+      const isExpiredIgnore =
+        existingRequest.status === 'ignored' &&
+        existingRequest.createdAt < thirtyDaysAgo;
+
+      if (!isExpiredIgnore) {
+        throw new Error('request already exist');
+      }
+
+      await ConnectionModel.deleteOne({ _id: existingRequest._id });
     }
 
     const request = new ConnectionModel({

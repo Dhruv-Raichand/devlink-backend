@@ -10,6 +10,8 @@ interface IConnectionModel {
   fromUserId: Types.ObjectId;
   toUserId: Types.ObjectId;
   status: ConnectionStatus;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 interface IConnectionModelDocument extends IConnectionModel, Document {}
