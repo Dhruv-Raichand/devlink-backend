@@ -9,6 +9,8 @@ const getSecretRoomId = (userId: string, targetUserId: string): string => {
     .digest('hex');
 };
 
+const onlineUsers = new Map<string, string>();
+
 const initializeSocket = (server: any): void => {
   const io = new Server(server, {
     cors: {
@@ -18,11 +20,17 @@ const initializeSocket = (server: any): void => {
   });
 
   io.on('connection', (socket: any) => {
+    socket.on('register', (userId: string) => {
+      onlineUsers.set(userId, socket.id);
+      console.log('User Registered: ' + userId);
+    });
+
     socket.on('joinChat', ({ firstName, userId, targetUserId }: any) => {
       const roomId = getSecretRoomId(userId, targetUserId);
       console.log(firstName + ' Joining Room: ' + roomId);
       socket.join(roomId);
     });
+
     socket.on(
       'sendMessage',
       async ({
@@ -37,7 +45,6 @@ const initializeSocket = (server: any): void => {
           const roomId = getSecretRoomId(userId, targetUserId);
           console.log(firstName + ': ' + text);
 
-          //save to DB
           let chat = await Chat.findOne({
             participants: { $all: [userId, targetUserId] },
           });
@@ -65,14 +72,34 @@ const initializeSocket = (server: any): void => {
             lastName,
             photoUrl,
             text,
-            createdAt: savedMessage.createdAt, // send the DB timestamp
+            createdAt: savedMessage.createdAt,
           });
+
+          const targetSocketId = onlineUsers.get(targetUserId);
+
+          if (targetSocketId) {
+            io.to(targetSocketId).emit('newNotification', {
+              type: 'message',
+              from: firstName,
+              text,
+              targetUserId: userId,
+            });
+          }
         } catch (err) {
           console.log(err);
         }
       }
     );
-    socket.on('disconnect', () => {});
+
+    socket.on('disconnect', () => {
+      for (const [userId, socketId] of onlineUsers.entries()) {
+        if (socketId === socket.id) {
+          onlineUsers.delete(userId);
+          break;
+        }
+      }
+      console.log('User Disconnected: ' + socket.id);
+    });
   });
 };
 
