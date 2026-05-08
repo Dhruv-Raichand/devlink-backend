@@ -11,6 +11,7 @@ import requestRouter from './routes/request.router.js';
 import userRouter from './routes/user.router.js';
 import chatRouter from './routes/chat.router.js';
 import skillRouter from './routes/skill.route.js';
+import paymentRouter from './routes/payment.route.js';
 
 import initializeSocket from './utils/socket.js';
 
@@ -34,6 +35,7 @@ app.use('/request', requestRouter);
 app.use('/user', userRouter);
 app.use('/chat', chatRouter);
 app.use('/skills', skillRouter);
+app.use('/payment', paymentRouter);
 
 // 404 Handler
 app.use((req: any, res: any) => {
