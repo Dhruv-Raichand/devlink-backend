@@ -1,25 +1,23 @@
 #!/bin/bash
 set -e
 
-# Load nvm
-export NVM_DIR="$HOME/.nvm"
-source "$NVM_DIR/nvm.sh"
-
-# Use node
-nvm use node
-
 cd ~/devlink-backend
 
 echo "Pulling latest code..."
 git pull origin main
 
-echo "Installing dependencies..."
-npm install
+echo "Stopping old container..."
+docker rm -f backend || true
 
-echo "Building project..."
-npm run build
+echo "Building Docker image..."
+docker build -t devlink-backend .
 
-echo "Reloading server..."
-pm2 reload devlink-backend || pm2 start dist/app.js --name devlink-backend
+echo "Starting new container..."
+docker run -d \
+  -p 3000:3000 \
+  --env-file .env \
+  --name backend \
+  --restart always \
+  devlink-backend
 
-echo "Backend deployed!"
+echo "Backend deployed successfully!"
