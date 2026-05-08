@@ -105,6 +105,8 @@ export const verifyPayment = async (req: any, res: any) => {
 
 export const handleWebhook = async (req: any, res: any) => {
   try {
+    console.log('Webhook hit');
+    console.log(req.headers['x-razorpay-signature']);
     const rawBody = req.body.toString();
     const isWebhookValid = validateWebhookSignature(
       rawBody,

@@ -12,11 +12,7 @@ paymentRouter.post('/create', userAuth, createPayment);
 
 paymentRouter.post('/verify', userAuth, verifyPayment);
 
-paymentRouter.post(
-  '/webhook',
-  express.raw({ type: 'application/json' }),
-  handleWebhook
-);
+paymentRouter.post('/webhook', handleWebhook);
 
 paymentRouter.get('/status/:orderId', userAuth, getPaymentStatus);
 

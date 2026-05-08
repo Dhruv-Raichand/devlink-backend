@@ -17,7 +17,6 @@ import initializeSocket from './utils/socket.js';
 
 const app = express();
 
-// Middleware
 app.use(
   cors({
     origin: process.env.FRONTEND_URL,
@@ -25,10 +24,12 @@ app.use(
   })
 );
 
-app.use(express.json());
 app.use(cookieParser());
 
-// Mount routes
+app.use('/payment/webhook', express.raw({ type: 'application/json' }));
+
+app.use(express.json());
+
 app.use('/auth', authRouter);
 app.use('/profile', profileRouter);
 app.use('/request', requestRouter);
@@ -37,18 +38,15 @@ app.use('/chat', chatRouter);
 app.use('/skills', skillRouter);
 app.use('/payment', paymentRouter);
 
-// 404 Handler
 app.use((req: any, res: any) => {
   res.status(404).send('Not Found');
 });
 
-// Create server
 const server = http.createServer(app);
 initializeSocket(server);
 
 const startServer = async () => {
   try {
-    // DB + Start Server
     await connectDB();
 
     await import('./utils/cronJob.js');
