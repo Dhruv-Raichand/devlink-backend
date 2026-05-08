@@ -14,6 +14,9 @@ export interface IUser {
   about: string;
   skills?: string[];
   githubUsername?: string;
+  membershipType: 'FREE' | 'PRO' | 'ELITE';
+  billingCycle?: 'MONTHLY' | 'YEARLY';
+  membershipExpiry: Date | null;
 }
 
 interface IUserMethods {
@@ -117,6 +120,23 @@ const userSchema = new mongoose.Schema<IUserDocument>(
     githubUsername: {
       type: String,
       trim: true,
+      default: null,
+    },
+
+    membershipType: {
+      type: String,
+      enum: ['FREE', 'PRO', 'ELITE'],
+      default: 'FREE',
+    },
+
+    billingCycle: {
+      type: String,
+      enum: ['MONTHLY', 'YEARLY'],
+      default: null,
+    },
+
+    membershipExpiry: {
+      type: Date,
       default: null,
     },
   },

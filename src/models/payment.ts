@@ -3,10 +3,12 @@ import mongoose, { Document } from 'mongoose';
 export interface IPayment {
   userId: mongoose.Types.ObjectId;
   orderId: string;
+  paymentId: string;
   amount: number;
   currency: string;
   receipt: string;
   membershipType: string;
+  billingCycle?: string;
   status: string;
   createdAt: Date;
   updatedAt: Date;
@@ -27,6 +29,11 @@ const paymentSchema = new mongoose.Schema<IPaymentDocument>(
       required: true,
     },
 
+    paymentId: {
+      type: String,
+      default: null,
+    },
+
     amount: {
       type: Number,
       required: true,
@@ -43,6 +50,10 @@ const paymentSchema = new mongoose.Schema<IPaymentDocument>(
     },
 
     membershipType: {
+      type: String,
+    },
+
+    billingCycle: {
       type: String,
     },
 
