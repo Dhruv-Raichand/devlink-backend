@@ -9,6 +9,8 @@ on:
       - 'package.json'
       - 'package-lock.json'
       - 'backend-deploy.sh'
+      - 'Dockerfile'
+      - '.dockerignore'
 
 jobs:
   deploy:
