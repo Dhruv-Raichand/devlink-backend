@@ -9,8 +9,11 @@ const getSecretRoomId = (userId: string, targetUserId: string): string => {
     .digest('hex');
 };
 
-const initializeSocket = (server: any): void => {
-  const io = new Server(server, {
+export const onlineUsers = new Map<string, string>();
+export let io: Server;
+
+const initializeSocket = (server: any): Server => {
+  io = new Server(server, {
     cors: {
       origin: process.env.FRONTEND_URL,
       credentials: true,
@@ -18,11 +21,18 @@ const initializeSocket = (server: any): void => {
   });
 
   io.on('connection', (socket: any) => {
+    socket.on('register', (userId: string) => {
+      onlineUsers.set(userId, socket.id);
+      io.emit('userOnline', userId);
+      socket.emit('onlineList', Array.from(onlineUsers.keys()));
+      console.log(`User ${userId} connected with socket ID ${socket.id}`);
+    });
+
     socket.on('joinChat', ({ firstName, userId, targetUserId }: any) => {
       const roomId = getSecretRoomId(userId, targetUserId);
-      console.log(firstName + ' Joining Room: ' + roomId);
       socket.join(roomId);
     });
+
     socket.on(
       'sendMessage',
       async ({
@@ -35,9 +45,7 @@ const initializeSocket = (server: any): void => {
       }: any) => {
         try {
           const roomId = getSecretRoomId(userId, targetUserId);
-          console.log(firstName + ': ' + text);
 
-          //save to DB
           let chat = await Chat.findOne({
             participants: { $all: [userId, targetUserId] },
           });
@@ -49,14 +57,10 @@ const initializeSocket = (server: any): void => {
             });
           }
 
-          const message: IMessageInput = {
-            senderId: userId,
-            text,
-          };
-
+          const message: IMessageInput = { senderId: userId, text };
           chat.messages.push(message);
-
           await chat.save();
+
           const savedMessage = chat.messages.at(-1);
           if (!savedMessage) return;
 
@@ -65,15 +69,36 @@ const initializeSocket = (server: any): void => {
             lastName,
             photoUrl,
             text,
-            createdAt: savedMessage.createdAt, // send the DB timestamp
+            createdAt: savedMessage.createdAt,
           });
+
+          const targetSocketId = onlineUsers.get(targetUserId);
+          if (targetSocketId) {
+            io.to(targetSocketId).emit('newNotification', {
+              type: 'message',
+              from: firstName,
+              text,
+              targetUserId: userId,
+            });
+          }
         } catch (err) {
           console.log(err);
         }
       }
     );
-    socket.on('disconnect', () => {});
+
+    socket.on('disconnect', () => {
+      for (const [userId, socketId] of onlineUsers.entries()) {
+        if (socketId === socket.id) {
+          onlineUsers.delete(userId);
+          io.emit('userOffline', userId);
+          break;
+        }
+      }
+    });
   });
+
+  return io;
 };
 
 export default initializeSocket;
