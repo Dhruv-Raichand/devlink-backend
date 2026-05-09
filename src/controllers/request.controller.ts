@@ -2,6 +2,7 @@ import User from '../models/user.js';
 import validator from 'validator';
 import ConnectionModel from '../models/connection.js';
 import sendEmail from '../utils/sendEmail.js';
+import { io, onlineUsers } from '../utils/socket.js';
 
 export const sendRequest = async (req: any, res: any): Promise<void> => {
   try {
@@ -69,6 +70,15 @@ export const sendRequest = async (req: any, res: any): Promise<void> => {
     const Data = await request.save();
 
     if (status === 'interested') {
+      const targetSocketId = onlineUsers.get(toUserId.toString());
+      if (targetSocketId) {
+        io.to(targetSocketId).emit('newNotification', {
+          type: 'request',
+          from: req.user.firstName,
+          text: 'sent you a connection request',
+          targetUserId: req.user._id.toString(),
+        });
+      }
       sendEmail(
         'Connection Request Sent Successfully',
         `Dear ${user?.firstName}, Your Connection Request is Successfully sent to ${toUser?.firstName} ${toUser?.lastName}`
@@ -106,12 +116,25 @@ export const reviewRequest = async (req: any, res: any): Promise<void> => {
       toUserId,
       status: 'interested',
     });
+
     if (!request) {
       return res.json({
         success: true,
         message: 'No pending requests to review',
         data: [],
       });
+    }
+
+    if (status === 'accepted') {
+      const targetSocketId = onlineUsers.get(request.fromUserId.toString());
+      if (targetSocketId) {
+        io.to(targetSocketId).emit('newNotification', {
+          type: 'request_accepted',
+          from: req.user.firstName,
+          text: 'accepted your connection request',
+          targetUserId: req.user._id.toString(),
+        });
+      }
     }
 
     request.status = status;
