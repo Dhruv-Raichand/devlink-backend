@@ -6,6 +6,7 @@ import {
   editProfile,
   getProfile,
   viewUserProfile,
+  completeOnboarding,
 } from '../controllers/profile.controller.js';
 
 profileRouter.get('/', userAuth, getProfile);
@@ -15,5 +16,7 @@ profileRouter.patch('/edit', userAuth, editProfile);
 profileRouter.patch('/password', userAuth, changePassword);
 
 profileRouter.get('/:userId', userAuth, viewUserProfile);
+
+profileRouter.post('/onboarding/complete', userAuth, completeOnboarding);
 
 export default profileRouter;

@@ -17,6 +17,10 @@ export interface IUser {
   membershipType: 'FREE' | 'PRO' | 'ELITE';
   billingCycle?: 'MONTHLY' | 'YEARLY';
   membershipExpiry: Date | null;
+  onboardingComplete: Boolean;
+  emailVerified: boolean;
+  emailVerifyToken?: string;
+  emailVerifyExpiry?: Date;
 }
 
 interface IUserMethods {
@@ -139,6 +143,10 @@ const userSchema = new mongoose.Schema<IUserDocument>(
       type: Date,
       default: null,
     },
+    onboardingComplete: { type: Boolean, default: false },
+    emailVerified: { type: Boolean, default: false },
+    emailVerifyToken: { type: String },
+    emailVerifyExpiry: { type: Date },
   },
   { timestamps: true }
 );

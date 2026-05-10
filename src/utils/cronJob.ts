@@ -1,46 +1,59 @@
 import cron from 'node-cron';
 import ConnectionModel from '../models/connection.js';
 import sendEmail from './sendEmail.js';
+import { digestEmail } from './emailTemplates.js';
 import { subDays, startOfDay, endOfDay } from 'date-fns';
 
 cron.schedule(
   '0 8 * * *',
   async () => {
-    // Send emails to all  people who got requests the previous day
     try {
       const yesterday = subDays(new Date(), 1);
-
-      const yesterdayStart = startOfDay(yesterday);
-      const yesterdayEnd = endOfDay(yesterday);
 
       const pendingRequests = await ConnectionModel.find({
         status: 'interested',
         createdAt: {
-          $gte: yesterdayStart,
-          $lt: yesterdayEnd,
+          $gte: startOfDay(yesterday),
+          $lt: endOfDay(yesterday),
         },
-      }).populate('toUserId');
+      }).populate<{
+        toUserId: { _id: any; emailId: string; firstName: string };
+      }>('toUserId', 'emailId firstName');
 
-      const listOfEmails = [
-        ...new Set(pendingRequests.map((req: any) => req.toUserId.emailId)),
-      ];
-      console.log(listOfEmails);
-      for (const email of listOfEmails) {
+      const recipientMap = new Map<
+        string,
+        { firstName: string; count: number }
+      >();
+
+      for (const req of pendingRequests) {
+        const { emailId, firstName } = req.toUserId;
+        if (!emailId) continue;
+
+        const existing = recipientMap.get(emailId);
+        if (existing) {
+          existing.count += 1;
+        } else {
+          recipientMap.set(emailId, { firstName, count: 1 });
+        }
+      }
+
+      console.log(`Digest: sending to ${recipientMap.size} users`);
+
+      for (const [email, { firstName, count }] of recipientMap) {
         try {
-          const res = await sendEmail(
-            `New Friend Requests pending for ${email}`,
-            'There are so many friend requests pending, Please login to the LinkDev.online and accept or reject requests'
-          );
-          console.log(res);
+          await sendEmail({
+            to: email,
+            subject: `You have ${count} new connection request${count > 1 ? 's' : ''} on DevLink`,
+            html: digestEmail(firstName, count),
+          });
+          console.log(`Digest sent to ${email}`);
         } catch (err) {
-          console.log(err);
+          console.error(`Digest failed for ${email}:`, err);
         }
       }
     } catch (err) {
-      console.log(err);
+      console.error('Cron job failed:', err);
     }
   },
-  {
-    timezone: 'Asia/Kolkata', // change to your timezone
-  }
+  { timezone: 'Asia/Kolkata' }
 );

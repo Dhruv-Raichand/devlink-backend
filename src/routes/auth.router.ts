@@ -1,6 +1,13 @@
 import Express from 'express';
 const authRouter = Express.Router();
-import { signup, login, logout } from '../controllers/auth.controller.js';
+import {
+  signup,
+  login,
+  logout,
+  verifyEmail,
+  resendVerification,
+} from '../controllers/auth.controller.js';
+import userAuth from '../middlewares/auth.js';
 import rateLimit from 'express-rate-limit';
 
 const authLimit = rateLimit({
@@ -29,5 +36,9 @@ authRouter.post('/signup', authLimit, signup);
 authRouter.post('/login', authLimit, login);
 
 authRouter.post('/logout', logout);
+
+authRouter.get('/verify-email', verifyEmail);
+
+authRouter.post('/resend-verification', userAuth, resendVerification);
 
 export default authRouter;
