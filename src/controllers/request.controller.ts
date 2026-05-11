@@ -1,7 +1,6 @@
 import User from '../models/user.js';
 import validator from 'validator';
 import ConnectionModel from '../models/connection.js';
-import sendEmail from '../utils/sendEmail.js';
 import { io, onlineUsers } from '../utils/socket.js';
 
 export const sendRequest = async (req: any, res: any): Promise<void> => {
@@ -79,12 +78,6 @@ export const sendRequest = async (req: any, res: any): Promise<void> => {
           targetUserId: req.user._id.toString(),
         });
       }
-      sendEmail(
-        'Connection Request Sent Successfully',
-        `Dear ${user?.firstName}, Your Connection Request is Successfully sent to ${toUser?.firstName} ${toUser?.lastName}`
-      ).catch((err) => {
-        console.error('Email failed:', err);
-      });
     }
 
     res.json({
