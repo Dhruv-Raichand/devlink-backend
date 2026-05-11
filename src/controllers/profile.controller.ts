@@ -101,3 +101,16 @@ export const viewUserProfile = async (req: any, res: any): Promise<void> => {
     res.status(400).json({ success: false, message: err.message });
   }
 };
+
+export const completeOnboarding = async (req: any, res: any): Promise<void> => {
+  try {
+    const user = await User.findByIdAndUpdate(
+      req.user._id,
+      { $set: { onboardingComplete: true } },
+      { new: true }
+    );
+    res.json({ success: true, data: sanitizeUser(user) });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};

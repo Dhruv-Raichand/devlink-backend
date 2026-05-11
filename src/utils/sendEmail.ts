@@ -1,58 +1,29 @@
-import { SendEmailCommand } from '@aws-sdk/client-ses';
-import sesClient from './sesClient.js';
+import { Resend } from 'resend';
 
-const createSendEmailCommand = (
-  subject: string,
-  body: string,
-  toAddress: string,
-  fromAddress: string
-) => {
-  return new SendEmailCommand({
-    Destination: {
-      CcAddresses: [],
-      ToAddresses: [toAddress],
-    },
-    Message: {
-      Body: {
-        Html: {
-          Charset: 'UTF-8',
-          Data: `<h1>${body}</h1>`,
-        },
-        Text: {
-          Charset: 'UTF-8',
-          Data: 'This is text format',
-        },
-      },
-      Subject: {
-        Charset: 'UTF-8',
-        Data: subject,
-      },
-    },
-    Source: fromAddress,
-    ReplyToAddresses: [
-      /* more items */
-    ],
-  });
-};
+const resend = new Resend(process.env.RESEND_API_KEY);
 
-const run = async (subject: string, body: string): Promise<any> => {
-  const sendEmailCommand = createSendEmailCommand(
+interface EmailOptions {
+  to: string;
+  subject: string;
+  html: string;
+}
+
+const sendEmail = async ({
+  to,
+  subject,
+  html,
+}: EmailOptions): Promise<void> => {
+  const { error } = await resend.emails.send({
+    from: process.env.FROM_EMAIL || 'noreply@linkdev.online',
+    to,
     subject,
-    body,
-    'dhruvraichand70@gmail.com',
-    'dhruv@linkdev.online'
-  );
+    html,
+  });
 
-  try {
-    return await sesClient.send(sendEmailCommand);
-  } catch (caught) {
-    if (caught instanceof Error && caught.name === 'MessageRejected') {
-      const messageRejectedError = caught;
-      return messageRejectedError;
-    }
-    throw caught;
+  if (error) {
+    console.error('Resend error:', error);
+    throw new Error(error.message);
   }
 };
 
-// snippet-end:[ses.JavaScript.email.sendEmailV3]
-export default run;
+export default sendEmail;
