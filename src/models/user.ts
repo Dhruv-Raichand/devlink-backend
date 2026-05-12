@@ -1,23 +1,24 @@
-import mongoose, { Document } from 'mongoose';
+import mongoose, { HydratedDocument } from 'mongoose';
 import validator from 'validator';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 
 export interface IUser {
+  _id: mongoose.Types.ObjectId;
   firstName: string;
   lastName?: string;
   emailId: string;
   password: string;
   age?: number;
   gender?: 'male' | 'female' | 'others';
-  photoUrl: string;
+  photoUrl?: string;
   about: string;
   skills?: string[];
   githubUsername?: string;
   membershipType: 'FREE' | 'PRO' | 'ELITE';
   billingCycle?: 'MONTHLY' | 'YEARLY';
   membershipExpiry: Date | null;
-  onboardingComplete: Boolean;
+  onboardingComplete: boolean;
   emailVerified: boolean;
   emailVerifyToken?: string;
   emailVerifyExpiry?: Date;
@@ -28,9 +29,14 @@ interface IUserMethods {
   comparePasswords(passwordByUser: string): Promise<boolean>;
 }
 
-interface IUserDocument extends IUser, IUserMethods, Document {}
+export type UserDocument = HydratedDocument<IUser, IUserMethods>;
 
-const userSchema = new mongoose.Schema<IUserDocument>(
+const userSchema = new mongoose.Schema<
+  IUser,
+  mongoose.Model<IUser>,
+  {},
+  IUserMethods
+>(
   {
     firstName: {
       type: String,
@@ -166,6 +172,9 @@ userSchema.methods.comparePasswords = async function (
   return bcrypt.compare(passwordByUser, this.password);
 };
 
-const User = mongoose.model<IUserDocument>('User', userSchema);
+const User = mongoose.model<IUser, mongoose.Model<IUser, {}, IUserMethods>>(
+  'User',
+  userSchema
+);
 
 export default User;
