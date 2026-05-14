@@ -15,3 +15,10 @@ export const membershipPlans = {
 
 export type MembershipType = keyof typeof membershipPlans;
 export type BillingCycle = 'MONTHLY' | 'YEARLY';
+
+export const COOKIE_OPTIONS = {
+  httpOnly: true,
+  secure: true,
+  sameSite: 'none' as const,
+  maxAge: 7 * 24 * 60 * 60 * 1000,
+};
