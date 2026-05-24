@@ -1,4 +1,4 @@
-const sanitizeUser = (user: any) => {
+export const sanitizeUser = (user: any) => {
   const userObj = user.toObject ? user.toObject() : user;
 
   delete userObj.password;
@@ -6,4 +6,5 @@ const sanitizeUser = (user: any) => {
 
   return userObj;
 };
-export default sanitizeUser;
+
+export const toSelectString = (fields: string[]) => fields.join(' ');

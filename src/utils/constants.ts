@@ -22,3 +22,28 @@ export const COOKIE_OPTIONS = {
   sameSite: 'none' as const,
   maxAge: 7 * 24 * 60 * 60 * 1000,
 };
+
+export const SAFE_USER_FIELDS = [
+  '_id',
+  'firstName',
+  'lastName',
+  'about',
+  'photoUrl',
+  'skills',
+  'age',
+  'gender',
+  'memberShipType',
+];
+
+export const REQUEST_USER_FIELDS = [
+  '_id',
+  'firstName',
+  'lastName',
+  'age',
+  'gender',
+  'photoUrl',
+  'about',
+  'memberShipType',
+];
+
+export const PROFILE_USER_FIELDS = [...SAFE_USER_FIELDS, 'githubUsername'];

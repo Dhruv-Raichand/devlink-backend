@@ -1,8 +1,9 @@
 import { validateUserEdit } from '../utils/validate.js';
 import bcrypt from 'bcrypt';
 import validator from 'validator';
-import sanitizeUser from '../utils/helper.js';
+import { sanitizeUser, toSelectString } from '../utils/helper.js';
 import User from '../models/user.js';
+import { PROFILE_USER_FIELDS } from '../utils/constants.js';
 
 export const getProfile = async (req: any, res: any): Promise<void> => {
   try {
@@ -86,10 +87,9 @@ export const viewUserProfile = async (req: any, res: any): Promise<void> => {
       throw new Error('Invalid userId');
     }
 
-    const SAFE_USER_FIELDS =
-      '_id firstName lastName about photoUrl skills age gender githubUsername';
-
-    const user = await User.findById(userId).select(SAFE_USER_FIELDS);
+    const user = await User.findById(userId).select(
+      toSelectString(PROFILE_USER_FIELDS)
+    );
 
     if (!user) {
       res.status(404).json({ success: false, message: 'User not found' });
