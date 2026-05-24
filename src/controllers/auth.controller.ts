@@ -1,7 +1,7 @@
 import User from '../models/user.js';
 import bcrypt from 'bcrypt';
 import { validate } from '../utils/validate.js';
-import sanitizeUser from '../utils/helper.js';
+import { sanitizeUser } from '../utils/helper.js';
 import { generateToken } from '../utils/token.js';
 import { verificationEmail } from '../utils/emailTemplates.js';
 import sendEmail from '../utils/sendEmail.js';

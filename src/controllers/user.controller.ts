@@ -1,20 +1,19 @@
 import ConnectionModel from '../models/connection.js';
 import User from '../models/user.js';
+import { SAFE_USER_FIELDS, REQUEST_USER_FIELDS } from '../utils/constants.js';
+import { toSelectString } from '../utils/helper.js';
 
 export const getReceivedRequests = async (
   req: any,
   res: any
 ): Promise<void> => {
   try {
-    const SAFE_USER_FIELDS =
-      '_id firstName lastName about photoUrl skills age gender';
-
     const loggedInUser = req.user;
 
     const requests = await ConnectionModel.find({
       toUserId: loggedInUser._id,
       status: 'interested',
-    }).populate('fromUserId', SAFE_USER_FIELDS);
+    }).populate('fromUserId', toSelectString(REQUEST_USER_FIELDS));
 
     const received = requests.map(({ _id, fromUserId }: any) => ({
       _id,
@@ -41,17 +40,14 @@ export const getConnections = async (req: any, res: any): Promise<void> => {
   try {
     const loggedInUser = req.user;
 
-    const SAFE_USER_FIELDS =
-      '_id firstName lastName about photoUrl skills age gender';
-
     const connections = await ConnectionModel.find({
       $or: [
         { toUserId: loggedInUser._id, status: 'accepted' },
         { fromUserId: loggedInUser._id, status: 'accepted' },
       ],
     })
-      .populate('fromUserId', SAFE_USER_FIELDS)
-      .populate('toUserId', SAFE_USER_FIELDS);
+      .populate('fromUserId', toSelectString(SAFE_USER_FIELDS))
+      .populate('toUserId', toSelectString(SAFE_USER_FIELDS));
 
     const connectionUsers = connections.map(
       (row: { fromUserId: any; toUserId: any }) => {
@@ -88,9 +84,6 @@ export const getFeed = async (req: any, res: any): Promise<void> => {
 
     limit = limit > 50 ? 50 : limit;
     const skip = (page - 1) * limit;
-
-    const SAFE_USER_FIELDS =
-      '_id firstName lastName about photoUrl skills age gender';
 
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
@@ -155,15 +148,12 @@ export const getFeed = async (req: any, res: any): Promise<void> => {
 
 export const getSentRequests = async (req: any, res: any): Promise<void> => {
   try {
-    const SAFE_USER_FIELDS =
-      '_id firstName lastName about photoUrl skills age gender';
-
     const loggedInUser = req.user;
 
     const requests = await ConnectionModel.find({
       fromUserId: loggedInUser._id,
       status: 'interested',
-    }).populate('toUserId', SAFE_USER_FIELDS);
+    }).populate('toUserId', toSelectString(REQUEST_USER_FIELDS));
 
     const sent = requests.map(({ _id, toUserId }: any) => ({
       _id,
