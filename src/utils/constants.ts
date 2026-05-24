@@ -32,7 +32,7 @@ export const SAFE_USER_FIELDS = [
   'skills',
   'age',
   'gender',
-  'memberShipType',
+  'membershipType',
 ];
 
 export const REQUEST_USER_FIELDS = [
@@ -43,7 +43,7 @@ export const REQUEST_USER_FIELDS = [
   'gender',
   'photoUrl',
   'about',
-  'memberShipType',
+  'membershipType',
 ];
 
 export const PROFILE_USER_FIELDS = [...SAFE_USER_FIELDS, 'githubUsername'];
