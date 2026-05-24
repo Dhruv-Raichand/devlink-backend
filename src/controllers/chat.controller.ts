@@ -1,19 +1,24 @@
 import Chat from '../models/chat.js';
-import { Types } from 'mongoose';
+import { PopulatedUser } from '../types/chat.types.js';
+import { Request, Response } from 'express';
 
-interface PopulatedUser {
-  _id: Types.ObjectId;
-  firstName: string;
-  lastName: string;
-  photoUrl: string;
-}
-
-export const recentChat = async (req: any, res: any): Promise<void> => {
+export const recentChat = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
   try {
-    const userId = req.user._id;
+    const user = req.user;
+
+    if (!user) {
+      res.status(401).json({
+        success: false,
+        message: 'Unauthorized',
+      });
+      return;
+    }
 
     const chats = await Chat.find({
-      participants: userId,
+      participants: user._id,
       'messages.0': { $exists: true },
     })
       .populate<{ participants: PopulatedUser[] }>(
@@ -26,10 +31,10 @@ export const recentChat = async (req: any, res: any): Promise<void> => {
     const data = chats
       .map((chat) => {
         const other = chat.participants.find(
-          (p) => p._id.toString() !== userId.toString()
+          (p) => p._id.toString() !== user._id.toString()
         );
 
-        if (!other) return null; // guard — skip if somehow missing
+        if (!other) return null;
 
         const last = chat.messages[chat.messages.length - 1];
 
@@ -50,12 +55,24 @@ export const recentChat = async (req: any, res: any): Promise<void> => {
   }
 };
 
-export const chatWithUser = async (req: any, res: any): Promise<void> => {
+export const chatWithUser = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
   const { targetUserId } = req.params as { targetUserId: string };
-  const userId = req.user._id;
+  const user = req.user;
+
+  if (!user) {
+    res.status(401).json({
+      success: false,
+      message: 'Unauthorized',
+    });
+    return;
+  }
+
   try {
     let chat = await Chat.findOne({
-      participants: { $all: [userId, targetUserId] },
+      participants: { $all: [user._id, targetUserId], $size: 2 },
     }).populate({
       path: 'messages.senderId',
       select: 'firstName lastName photoUrl',
@@ -63,7 +80,7 @@ export const chatWithUser = async (req: any, res: any): Promise<void> => {
 
     if (!chat) {
       chat = new Chat({
-        participants: [userId, targetUserId],
+        participants: [user._id, targetUserId],
         messages: [],
       });
       await chat.save();
