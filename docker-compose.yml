@@ -1,0 +1,43 @@
+version: '3.9'
+
+services:
+  backend:
+    build: .
+    container_name: backend
+    ports:
+      - '3000:3000'
+    depends_on:
+      - redis
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=production
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    restart: always
+
+  worker:
+    build: .
+    container_name: worker
+    depends_on:
+      - redis
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=production
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    command: npm run worker
+    restart: always
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis_data:/data
+    restart: always
+
+volumes:
+  redis_data:
