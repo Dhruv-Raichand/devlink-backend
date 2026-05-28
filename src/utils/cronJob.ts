@@ -1,8 +1,7 @@
 import cron from 'node-cron';
 import ConnectionModel from '../models/connection.js';
-import sendEmail from './sendEmail.js';
-import { digestEmail } from './emailTemplates.js';
 import { subDays, startOfDay, endOfDay } from 'date-fns';
+import { addDigestJob } from '../queues/email.queue.js';
 
 cron.schedule(
   '0 8 * * *',
@@ -40,16 +39,7 @@ cron.schedule(
       console.log(`Digest: sending to ${recipientMap.size} users`);
 
       for (const [email, { firstName, count }] of recipientMap) {
-        try {
-          await sendEmail({
-            to: email,
-            subject: `You have ${count} new connection request${count > 1 ? 's' : ''} on DevLink`,
-            html: digestEmail(firstName, count),
-          });
-          console.log(`Digest sent to ${email}`);
-        } catch (err) {
-          console.error(`Digest failed for ${email}:`, err);
-        }
+        await addDigestJob(email, firstName, count);
       }
     } catch (err) {
       console.error('Cron job failed:', err);
