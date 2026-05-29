@@ -1,5 +1,5 @@
 import { Worker } from 'bullmq';
-import sendEmail from '../utils/sendEmail.js'; // your existing email function
+import sendEmail from '../utils/sendEmail.js';
 import { digestEmail } from '../utils/emailTemplates.js';
 
 const connection = {
