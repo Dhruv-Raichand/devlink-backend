@@ -14,6 +14,7 @@ import skillRouter from './routes/skill.route.js';
 import paymentRouter from './routes/payment.route.js';
 
 import initializeSocket from './utils/socket.js';
+import { errorHandler } from './middlewares/errorHandler.js';
 
 const app = express();
 
@@ -31,6 +32,8 @@ app.use(cookieParser());
 app.use('/payment/webhook', express.raw({ type: 'application/json' }));
 
 app.use(express.json());
+
+app.use(errorHandler);
 
 app.use('/auth', authRouter);
 app.use('/profile', profileRouter);
