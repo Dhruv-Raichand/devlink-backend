@@ -5,11 +5,11 @@ import cors from 'cors';
 import http from 'http';
 import 'dotenv/config';
 
-import authRouter from './routes/auth.router.js';
-import profileRouter from './routes/profile.router.js';
-import requestRouter from './routes/request.router.js';
-import userRouter from './routes/user.router.js';
-import chatRouter from './routes/chat.router.js';
+import authRouter from './routes/auth.route.js';
+import profileRouter from './routes/profile.route.js';
+import requestRouter from './routes/request.route.js';
+import userRouter from './routes/user.route.js';
+import chatRouter from './routes/chat.route.js';
 import skillRouter from './routes/skill.route.js';
 import paymentRouter from './routes/payment.route.js';
 
