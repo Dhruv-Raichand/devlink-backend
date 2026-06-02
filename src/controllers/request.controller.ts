@@ -2,9 +2,10 @@ import User from '../models/user.js';
 import validator from 'validator';
 import ConnectionModel from '../models/connection.js';
 import { io, onlineUsers } from '../utils/socket.js';
+import { asyncHandler } from '../utils/asyncHandler.js';
 
-export const sendRequest = async (req: any, res: any): Promise<void> => {
-  try {
+export const sendRequest = asyncHandler(
+  async (req: any, res: any): Promise<void> => {
     const { status, toUserId } = req.params;
     const user = req.user;
     const fromUserId = user._id;
@@ -85,16 +86,11 @@ export const sendRequest = async (req: any, res: any): Promise<void> => {
       message: `${user.firstName} ${status} ${toUser.firstName}`,
       data: Data,
     });
-  } catch (err: any) {
-    res.status(400).json({
-      success: false,
-      message: err.message,
-    });
   }
-};
+);
 
-export const reviewRequest = async (req: any, res: any): Promise<void> => {
-  try {
+export const reviewRequest = asyncHandler(
+  async (req: any, res: any): Promise<void> => {
     const { status, requestId } = req.params;
     const toUserId = req.user._id;
     const allowedStatuses = ['accepted', 'rejected'];
@@ -137,16 +133,11 @@ export const reviewRequest = async (req: any, res: any): Promise<void> => {
       message: `Connection request  ${status}`,
       data: data,
     });
-  } catch (err: any) {
-    res.status(400).json({
-      success: false,
-      message: err.message,
-    });
   }
-};
+);
 
-export const withdrawRequest = async (req: any, res: any): Promise<void> => {
-  try {
+export const withdrawRequest = asyncHandler(
+  async (req: any, res: any): Promise<void> => {
     const { requestId } = req.params;
     const loggedInUser = req.user._id;
 
@@ -165,13 +156,11 @@ export const withdrawRequest = async (req: any, res: any): Promise<void> => {
     }
 
     res.json({ success: true, message: 'Request withdrawn' });
-  } catch (err: any) {
-    res.status(400).json({ success: false, message: err.message });
   }
-};
+);
 
-export const removeConnection = async (req: any, res: any): Promise<void> => {
-  try {
+export const removeConnection = asyncHandler(
+  async (req: any, res: any): Promise<void> => {
     const { userId } = req.params;
     const loggedInUser = req.user._id;
 
@@ -191,7 +180,5 @@ export const removeConnection = async (req: any, res: any): Promise<void> => {
     }
 
     res.json({ success: true, message: 'Connection removed' });
-  } catch (err: any) {
-    res.status(400).json({ success: false, message: err.message });
   }
-};
+);

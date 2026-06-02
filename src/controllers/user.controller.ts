@@ -1,13 +1,11 @@
 import ConnectionModel from '../models/connection.js';
 import User from '../models/user.js';
+import { asyncHandler } from '../utils/asyncHandler.js';
 import { SAFE_USER_FIELDS, REQUEST_USER_FIELDS } from '../utils/constants.js';
 import { toSelectString } from '../utils/helper.js';
 
-export const getReceivedRequests = async (
-  req: any,
-  res: any
-): Promise<void> => {
-  try {
+export const getReceivedRequests = asyncHandler(
+  async (req: any, res: any): Promise<void> => {
     const loggedInUser = req.user;
 
     const requests = await ConnectionModel.find({
@@ -28,16 +26,11 @@ export const getReceivedRequests = async (
           : 'Received requests fetched successfully',
       data: received,
     });
-  } catch (err: any) {
-    res.status(400).json({
-      success: false,
-      message: err.message,
-    });
   }
-};
+);
 
-export const getConnections = async (req: any, res: any): Promise<void> => {
-  try {
+export const getConnections = asyncHandler(
+  async (req: any, res: any): Promise<void> => {
     const loggedInUser = req.user;
 
     const connections = await ConnectionModel.find({
@@ -67,16 +60,11 @@ export const getConnections = async (req: any, res: any): Promise<void> => {
           : 'Connections fetched successfully',
       data: connectionUsers,
     });
-  } catch (err: any) {
-    res.status(400).json({
-      success: false,
-      message: err.message,
-    });
   }
-};
+);
 
-export const getFeed = async (req: any, res: any): Promise<void> => {
-  try {
+export const getFeed = asyncHandler(
+  async (req: any, res: any): Promise<void> => {
     const loggedInUser = req.user;
 
     const page = Number(req.query.page) || 1;
@@ -138,16 +126,11 @@ export const getFeed = async (req: any, res: any): Promise<void> => {
       },
       data: users,
     });
-  } catch (err: any) {
-    res.status(400).json({
-      success: false,
-      message: err.message,
-    });
   }
-};
+);
 
-export const getSentRequests = async (req: any, res: any): Promise<void> => {
-  try {
+export const getSentRequests = asyncHandler(
+  async (req: any, res: any): Promise<void> => {
     const loggedInUser = req.user;
 
     const requests = await ConnectionModel.find({
@@ -168,7 +151,5 @@ export const getSentRequests = async (req: any, res: any): Promise<void> => {
           : 'Sent requests fetched successfully',
       data: sent,
     });
-  } catch (err: any) {
-    res.status(400).json({ success: false, message: err.message });
   }
-};
+);
