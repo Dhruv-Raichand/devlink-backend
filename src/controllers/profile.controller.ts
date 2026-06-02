@@ -5,9 +5,10 @@ import { sanitizeUser, toSelectString } from '../utils/helper.js';
 import User from '../models/user.js';
 import { PROFILE_USER_FIELDS } from '../utils/constants.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
+import { Request, Response } from 'express';
 
 export const getProfile = asyncHandler(
-  async (req: any, res: any): Promise<void> => {
+  async (req: Request, res: Response): Promise<void> => {
     const user = req.user;
     res.json({
       success: true,
@@ -17,12 +18,15 @@ export const getProfile = asyncHandler(
 );
 
 export const editProfile = asyncHandler(
-  async (req: any, res: any): Promise<void> => {
+  async (req: Request, res: Response): Promise<void> => {
     if (!validateUserEdit(req.body)) {
       throw new Error('Invalid update request');
     }
 
     let loggedInUser = req.user;
+    if (!loggedInUser) {
+      throw new Error('User not found');
+    }
 
     delete req.body.password;
 
@@ -39,7 +43,7 @@ export const editProfile = asyncHandler(
 );
 
 export const changePassword = asyncHandler(
-  async (req: any, res: any): Promise<void> => {
+  async (req: Request, res: Response): Promise<void> => {
     const { password, newPassword } = req.body;
     if (!password || !newPassword) {
       throw new Error('current password and new password is required');
@@ -48,12 +52,19 @@ export const changePassword = asyncHandler(
     } else if (!validator.isStrongPassword(newPassword)) {
       throw new Error('new password is weak');
     }
+
     const loggedInUser = req.user;
+    if (!loggedInUser) {
+      throw new Error('User not found');
+    }
+
     const isCorrect = await bcrypt.compare(password, loggedInUser.password);
     if (isCorrect) {
       const newPasswordHash = await bcrypt.hash(newPassword, 10);
       loggedInUser.password = newPasswordHash;
+
       await loggedInUser.save();
+
       res.json({
         success: true,
         message: 'password update successfully',
@@ -66,10 +77,10 @@ export const changePassword = asyncHandler(
 );
 
 export const viewUserProfile = asyncHandler(
-  async (req: any, res: any): Promise<void> => {
+  async (req: Request, res: Response): Promise<void> => {
     const { userId } = req.params;
 
-    if (!validator.isMongoId(userId)) {
+    if (typeof userId !== 'string' || !validator.isMongoId(userId)) {
       throw new Error('Invalid userId');
     }
 
@@ -87,7 +98,10 @@ export const viewUserProfile = asyncHandler(
 );
 
 export const completeOnboarding = asyncHandler(
-  async (req: any, res: any): Promise<void> => {
+  async (req: Request, res: Response): Promise<void> => {
+    if (!req.user) {
+      throw new Error('User not found');
+    }
     const user = await User.findByIdAndUpdate(
       req.user._id,
       { $set: { onboardingComplete: true } },

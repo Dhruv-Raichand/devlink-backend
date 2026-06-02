@@ -2,20 +2,29 @@ import User from '../models/user.js';
 import validator from 'validator';
 import ConnectionModel from '../models/connection.js';
 import { io, onlineUsers } from '../utils/socket.js';
+import { Request, Response } from 'express';
 import { asyncHandler } from '../utils/asyncHandler.js';
 
 export const sendRequest = asyncHandler(
-  async (req: any, res: any): Promise<void> => {
+  async (req: Request, res: Response): Promise<void> => {
     const { status, toUserId } = req.params;
+
     const user = req.user;
+    if (!user) {
+      res.status(400).json({
+        success: false,
+        message: 'Unauthorized',
+      });
+      return;
+    }
     const fromUserId = user._id;
 
     const allowed_status = ['interested', 'ignored'];
-    if (!allowed_status.includes(status)) {
+    if (typeof status !== 'string' || !allowed_status.includes(status)) {
       throw new Error('Invalid Status Type ' + status);
     }
 
-    if (!validator.isMongoId(toUserId)) {
+    if (typeof toUserId !== 'string' || !validator.isMongoId(toUserId)) {
       throw new Error('Invalid userId');
     }
 
@@ -74,9 +83,9 @@ export const sendRequest = asyncHandler(
       if (targetSocketId) {
         io.to(targetSocketId).emit('newNotification', {
           type: 'request',
-          from: req.user.firstName,
+          from: user.firstName,
           text: 'sent you a connection request',
-          targetUserId: req.user._id.toString(),
+          targetUserId: user._id.toString(),
         });
       }
     }
@@ -90,16 +99,28 @@ export const sendRequest = asyncHandler(
 );
 
 export const reviewRequest = asyncHandler(
-  async (req: any, res: any): Promise<void> => {
+  async (req: Request, res: Response): Promise<void> => {
     const { status, requestId } = req.params;
-    const toUserId = req.user._id;
+
+    const user = req.user;
+    if (!user) {
+      res.status(400).json({
+        success: false,
+        message: 'Unauthorized',
+      });
+      return;
+    }
+    const toUserId = user._id;
+
     const allowedStatuses = ['accepted', 'rejected'];
-    if (!allowedStatuses.includes(status)) {
+    if (typeof status !== 'string' || !allowedStatuses.includes(status)) {
       throw new Error('Invalid Request ' + status);
     }
-    if (!validator.isMongoId(requestId)) {
+
+    if (typeof requestId !== 'string' || !validator.isMongoId(requestId)) {
       throw new Error('Invalid requestId');
     }
+
     const request = await ConnectionModel.findOne({
       _id: requestId,
       toUserId,
@@ -107,11 +128,12 @@ export const reviewRequest = asyncHandler(
     });
 
     if (!request) {
-      return res.json({
+      res.json({
         success: true,
         message: 'No pending requests to review',
         data: [],
       });
+      return;
     }
 
     if (status === 'accepted') {
@@ -119,14 +141,18 @@ export const reviewRequest = asyncHandler(
       if (targetSocketId) {
         io.to(targetSocketId).emit('newNotification', {
           type: 'request_accepted',
-          from: req.user.firstName,
+          from: user.firstName,
           text: 'accepted your connection request',
-          targetUserId: req.user._id.toString(),
+          targetUserId: user._id.toString(),
         });
       }
+      request.status = 'accepted';
     }
 
-    request.status = status;
+    if (status === 'rejected') {
+      request.status = 'rejected';
+    }
+
     const data = await request.save();
     res.json({
       success: true,
@@ -137,11 +163,20 @@ export const reviewRequest = asyncHandler(
 );
 
 export const withdrawRequest = asyncHandler(
-  async (req: any, res: any): Promise<void> => {
+  async (req: Request, res: Response): Promise<void> => {
     const { requestId } = req.params;
-    const loggedInUser = req.user._id;
 
-    if (!validator.isMongoId(requestId)) {
+    const user = req.user;
+    if (!user) {
+      res.status(400).json({
+        success: false,
+        message: 'Unauthorized',
+      });
+      return;
+    }
+    const loggedInUser = user._id;
+
+    if (typeof requestId !== 'string' || !validator.isMongoId(requestId)) {
       throw new Error('Invalid requestId');
     }
 
@@ -160,11 +195,21 @@ export const withdrawRequest = asyncHandler(
 );
 
 export const removeConnection = asyncHandler(
-  async (req: any, res: any): Promise<void> => {
+  async (req: Request, res: Response): Promise<void> => {
     const { userId } = req.params;
-    const loggedInUser = req.user._id;
 
-    if (!validator.isMongoId(userId)) {
+    const user = req.user;
+    if (!user) {
+      res.status(400).json({
+        success: false,
+        message: 'Unauthorized',
+      });
+      return;
+    }
+
+    const loggedInUser = user._id;
+
+    if (typeof userId !== 'string' || !validator.isMongoId(userId)) {
       throw new Error('Invalid userId');
     }
 

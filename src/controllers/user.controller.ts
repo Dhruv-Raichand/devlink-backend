@@ -3,10 +3,19 @@ import User from '../models/user.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { SAFE_USER_FIELDS, REQUEST_USER_FIELDS } from '../utils/constants.js';
 import { toSelectString } from '../utils/helper.js';
+import { Request, Response } from 'express';
 
 export const getReceivedRequests = asyncHandler(
-  async (req: any, res: any): Promise<void> => {
+  async (req: Request, res: Response): Promise<void> => {
     const loggedInUser = req.user;
+
+    if (!loggedInUser) {
+      res.status(400).json({
+        success: false,
+        message: 'Unauthorized',
+      });
+      return;
+    }
 
     const requests = await ConnectionModel.find({
       toUserId: loggedInUser._id,
@@ -30,8 +39,16 @@ export const getReceivedRequests = asyncHandler(
 );
 
 export const getConnections = asyncHandler(
-  async (req: any, res: any): Promise<void> => {
+  async (req: Request, res: Response): Promise<void> => {
     const loggedInUser = req.user;
+
+    if (!loggedInUser) {
+      res.status(400).json({
+        success: false,
+        message: 'Unauthorized',
+      });
+      return;
+    }
 
     const connections = await ConnectionModel.find({
       $or: [
@@ -64,8 +81,16 @@ export const getConnections = asyncHandler(
 );
 
 export const getFeed = asyncHandler(
-  async (req: any, res: any): Promise<void> => {
+  async (req: Request, res: Response): Promise<void> => {
     const loggedInUser = req.user;
+
+    if (!loggedInUser) {
+      res.status(400).json({
+        success: false,
+        message: 'Unauthorized',
+      });
+      return;
+    }
 
     const page = Number(req.query.page) || 1;
     let limit = Number(req.query.limit) || 10;
@@ -130,8 +155,16 @@ export const getFeed = asyncHandler(
 );
 
 export const getSentRequests = asyncHandler(
-  async (req: any, res: any): Promise<void> => {
+  async (req: Request, res: Response): Promise<void> => {
     const loggedInUser = req.user;
+
+    if (!loggedInUser) {
+      res.status(400).json({
+        success: false,
+        message: 'Unauthorized',
+      });
+      return;
+    }
 
     const requests = await ConnectionModel.find({
       fromUserId: loggedInUser._id,

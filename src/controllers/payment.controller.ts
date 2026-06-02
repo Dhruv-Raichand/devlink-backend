@@ -9,163 +9,183 @@ import { validateWebhookSignature } from 'razorpay/dist/utils/razorpay-utils.js'
 import User from '../models/user.js';
 import crypto from 'crypto';
 import { asyncHandler } from '../utils/asyncHandler.js';
+import { Request, Response } from 'express';
 
-export const createPayment = asyncHandler(async (req: any, res: any) => {
-  const { membershipType, billingCycle } = req.body;
+export const createPayment = asyncHandler(
+  async (req: Request, res: Response) => {
+    if (!req.user) {
+      throw new Error('User not found');
+    }
 
-  const isValidMembershipType = (value: any): value is MembershipType =>
-    Object.keys(membershipPlans).includes(value);
+    const { membershipType, billingCycle } = req.body;
 
-  const isValidBillingCycle = (value: any): value is BillingCycle =>
-    ['MONTHLY', 'YEARLY'].includes(value);
+    const isValidMembershipType = (value: any): value is MembershipType =>
+      Object.keys(membershipPlans).includes(value);
 
-  if (
-    !isValidMembershipType(membershipType) ||
-    !isValidBillingCycle(billingCycle)
-  ) {
-    return res.status(400).json({ success: false, error: 'Invalid input' });
-  }
+    const isValidBillingCycle = (value: any): value is BillingCycle =>
+      ['MONTHLY', 'YEARLY'].includes(value);
 
-  const type = membershipType as MembershipType;
-  const cycle = billingCycle as BillingCycle;
+    if (
+      !isValidMembershipType(membershipType) ||
+      !isValidBillingCycle(billingCycle)
+    ) {
+      return res.status(400).json({ success: false, error: 'Invalid input' });
+    }
 
-  const order = await razorpayInstance.orders.create({
-    amount: membershipPlans[type][cycle] * 100,
-    currency: 'INR',
-    receipt: `receipt_${Date.now()}`,
-    notes: {
-      userId: req.user._id.toString(),
-      membershipType: type,
-      billingCycle: cycle,
-    },
-  });
+    const type = membershipType as MembershipType;
+    const cycle = billingCycle as BillingCycle;
 
-  const payment = new Payment({
-    userId: req.user._id,
-    orderId: order.id,
-    amount: order.amount,
-    currency: order.currency,
-    receipt: order.receipt,
-    membershipType: type,
-    billingCycle: cycle,
-  });
+    const order = await razorpayInstance.orders.create({
+      amount: membershipPlans[type][cycle] * 100,
+      currency: 'INR',
+      receipt: `receipt_${Date.now()}`,
+      notes: {
+        userId: req.user._id.toString(),
+        membershipType: type,
+        billingCycle: cycle,
+      },
+    });
 
-  await payment.save();
-
-  res.status(201).json({
-    success: true,
-    data: {
+    const payment = new Payment({
+      userId: req.user._id,
       orderId: order.id,
       amount: order.amount,
       currency: order.currency,
-    },
-    keyId: process.env.RAZORPAY_KEY_ID,
-  });
-});
-
-export const verifyPayment = asyncHandler(async (req: any, res: any) => {
-  const { razorpay_order_id, razorpay_payment_id, razorpay_signature } =
-    req.body;
-
-  const expectedSignature = crypto
-    .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET as string)
-    .update(razorpay_order_id + '|' + razorpay_payment_id)
-    .digest('hex');
-
-  if (expectedSignature !== razorpay_signature) {
-    return res
-      .status(400)
-      .json({ success: false, error: 'Invalid payment signature' });
-  }
-
-  const payment = await Payment.findOneAndUpdate(
-    { orderId: razorpay_order_id },
-    { paymentId: razorpay_payment_id, status: 'authorized' },
-    { new: true }
-  );
-
-  if (!payment) {
-    return res.status(404).json({ success: false, error: 'Payment not found' });
-  }
-
-  res.status(200).json({ success: true });
-});
-
-export const handleWebhook = asyncHandler(async (req: any, res: any) => {
-  console.log('Webhook hit');
-  console.log(req.headers['x-razorpay-signature']);
-  const rawBody = req.body.toString();
-  const isWebhookValid = validateWebhookSignature(
-    rawBody,
-    req.headers['x-razorpay-signature'] as string,
-    process.env.RAZORPAY_WEBHOOK_SECRET as string
-  );
-
-  if (!isWebhookValid) {
-    return res.status(400).json({ error: 'Invalid webhook signature' });
-  }
-
-  const event = JSON.parse(rawBody);
-  const paymentDetails = event.payload.payment.entity;
-
-  const payment = await Payment.findOne({
-    orderId: paymentDetails.order_id,
-  });
-  if (!payment) {
-    return res.status(404).json({ error: 'Payment not found' });
-  }
-
-  if (payment.status === 'captured') {
-    return res.status(200).json({
-      success: true,
-      message: 'Payment already processed',
+      receipt: order.receipt,
+      membershipType: type,
+      billingCycle: cycle,
     });
-  }
 
-  if (event.event === 'payment.captured') {
-    payment.status = paymentDetails.status;
-    payment.paymentId = paymentDetails.id;
     await payment.save();
 
-    const expiryDate = new Date();
-    if (payment.billingCycle === 'MONTHLY') {
-      expiryDate.setMonth(expiryDate.getMonth() + 1);
-    } else {
-      expiryDate.setFullYear(expiryDate.getFullYear() + 1);
+    res.status(201).json({
+      success: true,
+      data: {
+        orderId: order.id,
+        amount: order.amount,
+        currency: order.currency,
+      },
+      keyId: process.env.RAZORPAY_KEY_ID,
+    });
+  }
+);
+
+export const verifyPayment = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } =
+      req.body;
+
+    const expectedSignature = crypto
+      .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET as string)
+      .update(razorpay_order_id + '|' + razorpay_payment_id)
+      .digest('hex');
+
+    if (expectedSignature !== razorpay_signature) {
+      return res
+        .status(400)
+        .json({ success: false, error: 'Invalid payment signature' });
     }
 
-    await User.findByIdAndUpdate(payment.userId, {
-      membershipType: payment.membershipType,
-      billingCycle: payment.billingCycle,
-      membershipExpiry: expiryDate,
+    const payment = await Payment.findOneAndUpdate(
+      { orderId: razorpay_order_id },
+      { paymentId: razorpay_payment_id, status: 'authorized' },
+      { new: true }
+    );
+
+    if (!payment) {
+      return res
+        .status(404)
+        .json({ success: false, error: 'Payment not found' });
+    }
+
+    res.status(200).json({ success: true });
+  }
+);
+
+export const handleWebhook = asyncHandler(
+  async (req: Request, res: Response) => {
+    console.log('Webhook hit');
+    const rawBody = req.body.toString();
+    const isWebhookValid = validateWebhookSignature(
+      rawBody,
+      req.headers['x-razorpay-signature'] as string,
+      process.env.RAZORPAY_WEBHOOK_SECRET as string
+    );
+
+    if (!isWebhookValid) {
+      return res.status(400).json({ error: 'Invalid webhook signature' });
+    }
+
+    const event = JSON.parse(rawBody);
+    const paymentDetails = event.payload.payment.entity;
+
+    const payment = await Payment.findOne({
+      orderId: paymentDetails.order_id,
+    });
+    if (!payment) {
+      return res.status(404).json({ error: 'Payment not found' });
+    }
+
+    if (payment.status === 'captured') {
+      return res.status(200).json({
+        success: true,
+        message: 'Payment already processed',
+      });
+    }
+
+    if (event.event === 'payment.captured') {
+      payment.status = paymentDetails.status;
+      payment.paymentId = paymentDetails.id;
+      await payment.save();
+
+      const expiryDate = new Date();
+      if (payment.billingCycle === 'MONTHLY') {
+        expiryDate.setMonth(expiryDate.getMonth() + 1);
+      } else {
+        expiryDate.setFullYear(expiryDate.getFullYear() + 1);
+      }
+
+      await User.findByIdAndUpdate(payment.userId, {
+        membershipType: payment.membershipType,
+        billingCycle: payment.billingCycle,
+        membershipExpiry: expiryDate,
+      });
+
+      console.log('Payment captured, user upgraded:', payment.userId);
+    }
+
+    if (event.event === 'payment.failed') {
+      payment.status = 'failed';
+      await payment.save();
+      console.log('Payment failed for order:', paymentDetails.order_id);
+    }
+
+    return res.status(200).json({ success: true });
+  }
+);
+
+export const getPaymentStatus = asyncHandler(
+  async (req: Request, res: Response) => {
+    if (!req.user) {
+      throw new Error('User not found');
+    }
+
+    const payment = await Payment.findOne({
+      orderId: req.params.orderId,
+      userId: req.user._id,
     });
 
-    console.log('Payment captured, user upgraded:', payment.userId);
+    if (!payment) {
+      return res
+        .status(404)
+        .json({ success: false, error: 'Payment not found' });
+    }
+
+    if (payment.status === 'captured') {
+      const user = await User.findById(req.user._id).select('-password');
+      return res.status(200).json({ success: true, ready: true, user });
+    }
+
+    res.status(200).json({ success: true, ready: false });
   }
-
-  if (event.event === 'payment.failed') {
-    payment.status = 'failed';
-    await payment.save();
-    console.log('Payment failed for order:', paymentDetails.order_id);
-  }
-
-  return res.status(200).json({ success: true });
-});
-
-export const getPaymentStatus = asyncHandler(async (req: any, res: any) => {
-  const payment = await Payment.findOne({
-    orderId: req.params.orderId,
-    userId: req.user._id,
-  });
-
-  if (!payment) {
-    return res.status(404).json({ success: false, error: 'Payment not found' });
-  }
-
-  if (payment.status === 'captured') {
-    const user = await User.findById(req.user._id).select('-password');
-    return res.status(200).json({ success: true, ready: true, user });
-  }
-
-  res.status(200).json({ success: true, ready: false });
-});
+);
