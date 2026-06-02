@@ -12,10 +12,12 @@ const userAuth = async (req: Request, res: Response, next: NextFunction) => {
       });
     }
 
-    const decoded = jwt.verify(
-      token,
-      process.env.JWT_SECRET_KEY!
-    ) as JwtPayload;
+    const JWT_SECRET = process.env.JWT_SECRET_KEY;
+    if (!JWT_SECRET) {
+      throw new Error('JWT_SECRET_KEY is not configured');
+    }
+
+    const decoded = jwt.verify(token, JWT_SECRET) as JwtPayload;
 
     if (typeof decoded === 'object' && decoded !== null && '_id' in decoded) {
       const _id = decoded._id as string;
