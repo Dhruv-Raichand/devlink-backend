@@ -8,13 +8,11 @@ import sendEmail from '../utils/sendEmail.js';
 import { SignupRequest, LoginRequest } from '../types/auth.types.js';
 import { Request, Response } from 'express';
 import { COOKIE_OPTIONS } from '../utils/constants.js';
+import { asyncHandler } from '../utils/asyncHandler.js';
 
-export const signup = async (
-  req: SignupRequest,
-  res: Response
-): Promise<void> => {
-  const { firstName, lastName, emailId, password } = req.body;
-  try {
+export const signup = asyncHandler(
+  async (req: SignupRequest, res: Response): Promise<void> => {
+    const { firstName, lastName, emailId, password } = req.body;
     validate(req.body);
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -49,41 +47,12 @@ export const signup = async (
       message: 'Account created. Check your email for verification.',
       data: sanitizeUser(signedUser),
     });
-  } catch (err: unknown) {
-    if (
-      typeof err === 'object' &&
-      err !== null &&
-      'code' in err &&
-      err.code === 11000
-    ) {
-      res.status(400).json({
-        success: false,
-        message: 'This Email is already registered',
-      });
-      return;
-    }
-
-    if (err instanceof Error) {
-      res.status(400).json({
-        success: false,
-        message: err.message,
-      });
-      return;
-    }
-
-    res.status(500).json({
-      success: false,
-      message: 'Unknown error',
-    });
   }
-};
+);
 
-export const login = async (
-  req: LoginRequest,
-  res: Response
-): Promise<void> => {
-  const { emailId, password } = req.body;
-  try {
+export const login = asyncHandler(
+  async (req: LoginRequest, res: Response): Promise<void> => {
+    const { emailId, password } = req.body;
     const user = await User.findOne({ emailId });
     if (!user) {
       throw new Error('Invalid Credentials');
@@ -108,21 +77,8 @@ export const login = async (
       message: 'Login Successful',
       data: sanitizeUser(user),
     });
-  } catch (err: unknown) {
-    if (err instanceof Error) {
-      res.status(400).json({
-        success: false,
-        message: err.message,
-      });
-      return;
-    }
-
-    res.status(500).json({
-      success: false,
-      message: 'Unknown error',
-    });
   }
-};
+);
 
 export const logout = (req: Request, res: Response): void => {
   res.cookie('token', null, { expires: new Date(Date.now()) });
@@ -132,11 +88,8 @@ export const logout = (req: Request, res: Response): void => {
   });
 };
 
-export const verifyEmail = async (
-  req: Request,
-  res: Response
-): Promise<void> => {
-  try {
+export const verifyEmail = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
     const { token } = req.query;
 
     if (typeof token !== 'string') {
@@ -166,21 +119,11 @@ export const verifyEmail = async (
     });
 
     res.json({ success: true, message: 'Email verified' });
-  } catch (err: unknown) {
-    if (err instanceof Error) {
-      res.status(500).json({ success: false, message: err.message });
-      return;
-    }
-
-    res.status(500).json({ success: false, message: 'Unknown error' });
   }
-};
+);
 
-export const resendVerification = async (
-  req: Request,
-  res: Response
-): Promise<void> => {
-  try {
+export const resendVerification = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
     const user = req.user;
 
     if (!user) {
@@ -215,11 +158,5 @@ export const resendVerification = async (
     }).catch((err) => console.error('Resend failed:', err));
 
     res.json({ success: true, message: 'Verification email sent' });
-  } catch (err: unknown) {
-    if (err instanceof Error) {
-      res.status(500).json({ success: false, message: err.message });
-      return;
-    }
-    res.status(500).json({ success: false, message: 'Unknown error' });
   }
-};
+);
