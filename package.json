@@ -8,18 +8,18 @@
     "typescript"
   ],
   "license": "ISC",
-  "author": "Arthur Morgan",
+  "author": "Dhruv Raichand",
   "type": "module",
   "main": "index.js",
   "scripts": {
     "start": "node dist/app.js",
     "dev": "tsx watch src/app.ts",
     "build": "tsc",
-    "worker": "tsx watch src/workers/email.worker.ts",
+    "worker": "node dist/workers/email.worker.js",
+    "worker:dev": "tsx watch src/workers/email.worker.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
-    "@aws-sdk/client-ses": "^3.883.0",
     "bcrypt": "^6.0.0",
     "bullmq": "^5.77.6",
     "cookie-parser": "^1.4.7",
