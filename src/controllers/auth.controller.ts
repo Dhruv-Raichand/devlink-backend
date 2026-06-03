@@ -9,6 +9,7 @@ import { SignupRequest, LoginRequest } from '../types/auth.types.js';
 import { Request, Response } from 'express';
 import { COOKIE_OPTIONS } from '../utils/constants.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
+import { ApiError } from '../utils/apiError.js';
 
 export const signup = asyncHandler(
   async (req: SignupRequest, res: Response): Promise<void> => {
@@ -29,14 +30,14 @@ export const signup = asyncHandler(
 
     const signedUser = await user.save();
 
-    sendEmail({
+    await sendEmail({
       to: user.emailId,
       subject: 'Verify your DevLink email',
       html: verificationEmail(
         user.firstName,
         `${process.env.FRONTEND_URL}/verify-email?token=${verifyToken}`
       ),
-    }).catch((err) => console.error('Verification email failed:', err));
+    });
 
     const Token = await signedUser.getJWT();
 
@@ -55,22 +56,17 @@ export const login = asyncHandler(
     const { emailId, password } = req.body;
     const user = await User.findOne({ emailId });
     if (!user) {
-      throw new Error('Invalid Credentials');
+      throw new ApiError(400, 'Invalid Credentials');
     }
 
     const isCorrect = await user.comparePasswords(password);
     if (!isCorrect) {
-      throw new Error('Invalid Credentials');
+      throw new ApiError(400, 'Invalid Credentials');
     }
 
     const Token = await user.getJWT();
 
-    res.cookie('token', Token, {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'none',
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
+    res.cookie('token', Token, COOKIE_OPTIONS);
 
     res.json({
       success: true,
@@ -93,11 +89,7 @@ export const verifyEmail = asyncHandler(
     const { token } = req.query;
 
     if (typeof token !== 'string') {
-      res.status(400).json({
-        success: false,
-        message: 'Invalid token',
-      });
-      return;
+      throw new ApiError(400, 'Invalid verification link');
     }
 
     const user = await User.findOne({
@@ -106,11 +98,7 @@ export const verifyEmail = asyncHandler(
     });
 
     if (!user) {
-      res.status(400).json({
-        success: false,
-        message: 'Invalid or expired verification link',
-      });
-      return;
+      throw new ApiError(400, 'Invalid or expired verification link');
     }
 
     await User.findByIdAndUpdate(user._id, {
@@ -127,16 +115,11 @@ export const resendVerification = asyncHandler(
     const user = req.user;
 
     if (!user) {
-      res.status(401).json({
-        success: false,
-        message: 'Unauthorized',
-      });
-      return;
+      throw new ApiError(401, 'Unauthorized');
     }
 
     if (user.emailVerified) {
-      res.status(400).json({ success: false, message: 'Already verified' });
-      return;
+      throw new ApiError(400, 'Email already verified');
     }
 
     const verifyToken = generateToken();
@@ -148,14 +131,14 @@ export const resendVerification = asyncHandler(
       },
     });
 
-    sendEmail({
+    await sendEmail({
       to: user.emailId,
       subject: 'Verify your DevLink email',
       html: verificationEmail(
         user.firstName,
         `${process.env.FRONTEND_URL}/verify-email?token=${verifyToken}`
       ),
-    }).catch((err) => console.error('Resend failed:', err));
+    });
 
     res.json({ success: true, message: 'Verification email sent' });
   }

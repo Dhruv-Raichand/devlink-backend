@@ -1,5 +1,6 @@
 import ConnectionModel from '../models/connection.js';
-import User from '../models/user.js';
+import User, { IUser } from '../models/user.js';
+import { ApiError } from '../utils/apiError.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { SAFE_USER_FIELDS, REQUEST_USER_FIELDS } from '../utils/constants.js';
 import { toSelectString } from '../utils/helper.js';
@@ -10,17 +11,16 @@ export const getReceivedRequests = asyncHandler(
     const loggedInUser = req.user;
 
     if (!loggedInUser) {
-      res.status(400).json({
-        success: false,
-        message: 'Unauthorized',
-      });
-      return;
+      throw new ApiError(401, 'Unauthorized');
     }
 
     const requests = await ConnectionModel.find({
       toUserId: loggedInUser._id,
       status: 'interested',
-    }).populate('fromUserId', toSelectString(REQUEST_USER_FIELDS));
+    }).populate<{ fromUserId: IUser }>(
+      'fromUserId',
+      toSelectString(REQUEST_USER_FIELDS)
+    );
 
     const received = requests.map(({ _id, fromUserId }: any) => ({
       _id,
@@ -43,11 +43,7 @@ export const getConnections = asyncHandler(
     const loggedInUser = req.user;
 
     if (!loggedInUser) {
-      res.status(400).json({
-        success: false,
-        message: 'Unauthorized',
-      });
-      return;
+      throw new ApiError(401, 'Unauthorized');
     }
 
     const connections = await ConnectionModel.find({
@@ -56,18 +52,19 @@ export const getConnections = asyncHandler(
         { fromUserId: loggedInUser._id, status: 'accepted' },
       ],
     })
-      .populate('fromUserId', toSelectString(SAFE_USER_FIELDS))
-      .populate('toUserId', toSelectString(SAFE_USER_FIELDS));
-
-    const connectionUsers = connections.map(
-      (row: { fromUserId: any; toUserId: any }) => {
-        if (loggedInUser._id.toString() === row.toUserId._id.toString()) {
-          return row.fromUserId;
-        } else {
-          return row.toUserId;
-        }
-      }
-    );
+      .populate<{ fromUserId: IUser }>(
+        'fromUserId',
+        toSelectString(SAFE_USER_FIELDS)
+      )
+      .populate<{ toUserId: IUser }>(
+        'toUserId',
+        toSelectString(SAFE_USER_FIELDS)
+      );
+    const connectionUsers = connections.map((row) => {
+      return loggedInUser._id.toString() === row.toUserId._id.toString()
+        ? row.fromUserId
+        : row.toUserId;
+    });
 
     res.json({
       success: true,
@@ -85,11 +82,7 @@ export const getFeed = asyncHandler(
     const loggedInUser = req.user;
 
     if (!loggedInUser) {
-      res.status(400).json({
-        success: false,
-        message: 'Unauthorized',
-      });
-      return;
+      throw new ApiError(401, 'Unauthorized');
     }
 
     const page = Number(req.query.page) || 1;
@@ -159,19 +152,18 @@ export const getSentRequests = asyncHandler(
     const loggedInUser = req.user;
 
     if (!loggedInUser) {
-      res.status(400).json({
-        success: false,
-        message: 'Unauthorized',
-      });
-      return;
+      throw new ApiError(401, 'Unauthorized');
     }
 
     const requests = await ConnectionModel.find({
       fromUserId: loggedInUser._id,
       status: 'interested',
-    }).populate('toUserId', toSelectString(REQUEST_USER_FIELDS));
+    }).populate<{ toUserId: IUser }>(
+      'toUserId',
+      toSelectString(REQUEST_USER_FIELDS)
+    );
 
-    const sent = requests.map(({ _id, toUserId }: any) => ({
+    const sent = requests.map(({ _id, toUserId }) => ({
       _id,
       toUserId,
     }));

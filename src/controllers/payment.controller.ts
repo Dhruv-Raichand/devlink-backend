@@ -10,11 +10,12 @@ import User from '../models/user.js';
 import crypto from 'crypto';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { Request, Response } from 'express';
+import { ApiError } from '../utils/apiError.js';
 
 export const createPayment = asyncHandler(
   async (req: Request, res: Response) => {
     if (!req.user) {
-      throw new Error('User not found');
+      throw new ApiError(401, 'Unauthorized');
     }
 
     const { membershipType, billingCycle } = req.body;
@@ -29,7 +30,7 @@ export const createPayment = asyncHandler(
       !isValidMembershipType(membershipType) ||
       !isValidBillingCycle(billingCycle)
     ) {
-      return res.status(400).json({ success: false, error: 'Invalid input' });
+      throw new ApiError(400, 'Invalid input');
     }
 
     const type = membershipType as MembershipType;
@@ -81,9 +82,7 @@ export const verifyPayment = asyncHandler(
       .digest('hex');
 
     if (expectedSignature !== razorpay_signature) {
-      return res
-        .status(400)
-        .json({ success: false, error: 'Invalid payment signature' });
+      throw new ApiError(400, 'Invalid signature');
     }
 
     const payment = await Payment.findOneAndUpdate(
@@ -93,9 +92,7 @@ export const verifyPayment = asyncHandler(
     );
 
     if (!payment) {
-      return res
-        .status(404)
-        .json({ success: false, error: 'Payment not found' });
+      throw new ApiError(404, 'Payment not found');
     }
 
     res.status(200).json({ success: true });
@@ -105,6 +102,7 @@ export const verifyPayment = asyncHandler(
 export const handleWebhook = asyncHandler(
   async (req: Request, res: Response) => {
     console.log('Webhook hit');
+
     const rawBody = req.body.toString();
     const isWebhookValid = validateWebhookSignature(
       rawBody,
@@ -113,7 +111,7 @@ export const handleWebhook = asyncHandler(
     );
 
     if (!isWebhookValid) {
-      return res.status(400).json({ error: 'Invalid webhook signature' });
+      throw new ApiError(400, 'Invalid webhook signature');
     }
 
     const event = JSON.parse(rawBody);
@@ -123,7 +121,7 @@ export const handleWebhook = asyncHandler(
       orderId: paymentDetails.order_id,
     });
     if (!payment) {
-      return res.status(404).json({ error: 'Payment not found' });
+      throw new ApiError(404, 'Payment not found');
     }
 
     if (payment.status === 'captured') {
@@ -167,7 +165,7 @@ export const handleWebhook = asyncHandler(
 export const getPaymentStatus = asyncHandler(
   async (req: Request, res: Response) => {
     if (!req.user) {
-      throw new Error('User not found');
+      throw new ApiError(401, 'Unauthorized');
     }
 
     const payment = await Payment.findOne({
@@ -176,9 +174,7 @@ export const getPaymentStatus = asyncHandler(
     });
 
     if (!payment) {
-      return res
-        .status(404)
-        .json({ success: false, error: 'Payment not found' });
+      throw new ApiError(404, 'Payment not found');
     }
 
     if (payment.status === 'captured') {

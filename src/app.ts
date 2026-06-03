@@ -33,8 +33,6 @@ app.use('/payment/webhook', express.raw({ type: 'application/json' }));
 
 app.use(express.json());
 
-app.use(errorHandler);
-
 app.use('/auth', authRouter);
 app.use('/profile', profileRouter);
 app.use('/request', requestRouter);
@@ -46,6 +44,8 @@ app.use('/payment', paymentRouter);
 app.use((req: any, res: any) => {
   res.status(404).send('Not Found');
 });
+
+app.use(errorHandler);
 
 const server = http.createServer(app);
 initializeSocket(server);

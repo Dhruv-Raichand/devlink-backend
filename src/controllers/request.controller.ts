@@ -4,6 +4,7 @@ import ConnectionModel from '../models/connection.js';
 import { io, onlineUsers } from '../utils/socket.js';
 import { Request, Response } from 'express';
 import { asyncHandler } from '../utils/asyncHandler.js';
+import { ApiError } from '../utils/apiError.js';
 
 export const sendRequest = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
@@ -11,30 +12,26 @@ export const sendRequest = asyncHandler(
 
     const user = req.user;
     if (!user) {
-      res.status(400).json({
-        success: false,
-        message: 'Unauthorized',
-      });
-      return;
+      throw new ApiError(401, 'Unauthorized');
     }
     const fromUserId = user._id;
 
     const allowed_status = ['interested', 'ignored'];
     if (typeof status !== 'string' || !allowed_status.includes(status)) {
-      throw new Error('Invalid Status Type ' + status);
+      throw new ApiError(400, `Invalid Status Type: ${status}`);
     }
 
     if (typeof toUserId !== 'string' || !validator.isMongoId(toUserId)) {
-      throw new Error('Invalid userId');
+      throw new ApiError(400, 'Invalid userId');
     }
 
     if (fromUserId.toString() === toUserId) {
-      throw new Error('sending request to yourself is not allowed');
+      throw new ApiError(400, 'sending request to yourself is not allowed');
     }
 
     const toUser = await User.findOne({ _id: toUserId });
     if (!toUser) {
-      throw new Error('User not found');
+      throw new ApiError(404, 'User not found');
     }
 
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
@@ -48,7 +45,7 @@ export const sendRequest = asyncHandler(
       $nor: [{ status: 'ignored', createdAt: { $lt: thirtyDaysAgo } }],
     });
     if (validateRequest) {
-      throw new Error('request already exist');
+      throw new ApiError(400, 'request already exist');
     }
 
     const existingRequest = await ConnectionModel.findOne({
@@ -64,7 +61,7 @@ export const sendRequest = asyncHandler(
         existingRequest.createdAt < thirtyDaysAgo;
 
       if (!isExpiredIgnore) {
-        throw new Error('request already exist');
+        throw new ApiError(400, 'request already exist');
       }
 
       await ConnectionModel.deleteOne({ _id: existingRequest._id });
@@ -104,21 +101,17 @@ export const reviewRequest = asyncHandler(
 
     const user = req.user;
     if (!user) {
-      res.status(400).json({
-        success: false,
-        message: 'Unauthorized',
-      });
-      return;
+      throw new ApiError(401, 'Unauthorized');
     }
     const toUserId = user._id;
 
     const allowedStatuses = ['accepted', 'rejected'];
     if (typeof status !== 'string' || !allowedStatuses.includes(status)) {
-      throw new Error('Invalid Request ' + status);
+      throw new ApiError(400, `Invalid Request Status: ${status}`);
     }
 
     if (typeof requestId !== 'string' || !validator.isMongoId(requestId)) {
-      throw new Error('Invalid requestId');
+      throw new ApiError(400, 'Invalid requestId');
     }
 
     const request = await ConnectionModel.findOne({
@@ -128,12 +121,7 @@ export const reviewRequest = asyncHandler(
     });
 
     if (!request) {
-      res.json({
-        success: true,
-        message: 'No pending requests to review',
-        data: [],
-      });
-      return;
+      throw new ApiError(404, 'Request not found or already reviewed');
     }
 
     if (status === 'accepted') {
@@ -168,16 +156,12 @@ export const withdrawRequest = asyncHandler(
 
     const user = req.user;
     if (!user) {
-      res.status(400).json({
-        success: false,
-        message: 'Unauthorized',
-      });
-      return;
+      throw new ApiError(401, 'Unauthorized');
     }
     const loggedInUser = user._id;
 
     if (typeof requestId !== 'string' || !validator.isMongoId(requestId)) {
-      throw new Error('Invalid requestId');
+      throw new ApiError(400, 'Invalid requestId');
     }
 
     const request = await ConnectionModel.findOneAndDelete({
@@ -187,7 +171,7 @@ export const withdrawRequest = asyncHandler(
     });
 
     if (!request) {
-      throw new Error('Request not found or already reviewed');
+      throw new ApiError(404, 'Request not found or already reviewed');
     }
 
     res.json({ success: true, message: 'Request withdrawn' });
@@ -200,17 +184,13 @@ export const removeConnection = asyncHandler(
 
     const user = req.user;
     if (!user) {
-      res.status(400).json({
-        success: false,
-        message: 'Unauthorized',
-      });
-      return;
+      throw new ApiError(401, 'Unauthorized');
     }
 
     const loggedInUser = user._id;
 
     if (typeof userId !== 'string' || !validator.isMongoId(userId)) {
-      throw new Error('Invalid userId');
+      throw new ApiError(400, 'Invalid userId');
     }
 
     const connection = await ConnectionModel.findOneAndDelete({
@@ -221,7 +201,7 @@ export const removeConnection = asyncHandler(
     });
 
     if (!connection) {
-      throw new Error('Connection not found');
+      throw new ApiError(404, 'Connection not found');
     }
 
     res.json({ success: true, message: 'Connection removed' });
