@@ -6,6 +6,7 @@ import User from '../models/user.js';
 import { PROFILE_USER_FIELDS } from '../utils/constants.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { Request, Response } from 'express';
+import { ApiError } from '../utils/apiError.js';
 
 export const getProfile = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
@@ -20,12 +21,12 @@ export const getProfile = asyncHandler(
 export const editProfile = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
     if (!validateUserEdit(req.body)) {
-      throw new Error('Invalid update request');
+      throw new ApiError(400, 'Invalid update request');
     }
 
     let loggedInUser = req.user;
     if (!loggedInUser) {
-      throw new Error('User not found');
+      throw new ApiError(401, 'Unauthorized');
     }
 
     delete req.body.password;
@@ -46,16 +47,19 @@ export const changePassword = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
     const { password, newPassword } = req.body;
     if (!password || !newPassword) {
-      throw new Error('current password and new password is required');
+      throw new ApiError(400, 'Current password and new password are required');
     } else if (password === newPassword) {
-      throw new Error('new password should not be same as current password');
+      throw new ApiError(
+        400,
+        'New password should not be the same as the current password'
+      );
     } else if (!validator.isStrongPassword(newPassword)) {
-      throw new Error('new password is weak');
+      throw new ApiError(400, 'New password is weak');
     }
 
     const loggedInUser = req.user;
     if (!loggedInUser) {
-      throw new Error('User not found');
+      throw new ApiError(401, 'Unauthorized');
     }
 
     const isCorrect = await bcrypt.compare(password, loggedInUser.password);
@@ -71,7 +75,7 @@ export const changePassword = asyncHandler(
         data: sanitizeUser(loggedInUser),
       });
     } else {
-      throw new Error('password is not matched');
+      throw new ApiError(400, 'Current password is incorrect');
     }
   }
 );
@@ -81,7 +85,7 @@ export const viewUserProfile = asyncHandler(
     const { userId } = req.params;
 
     if (typeof userId !== 'string' || !validator.isMongoId(userId)) {
-      throw new Error('Invalid userId');
+      throw new ApiError(400, 'Invalid userId');
     }
 
     const user = await User.findById(userId).select(
@@ -89,8 +93,7 @@ export const viewUserProfile = asyncHandler(
     );
 
     if (!user) {
-      res.status(404).json({ success: false, message: 'User not found' });
-      return;
+      throw new ApiError(404, 'User not found');
     }
 
     res.json({ success: true, data: user });
@@ -100,7 +103,7 @@ export const viewUserProfile = asyncHandler(
 export const completeOnboarding = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
     if (!req.user) {
-      throw new Error('User not found');
+      throw new ApiError(401, 'Unauthorized');
     }
     const user = await User.findByIdAndUpdate(
       req.user._id,
