@@ -1,18 +1,15 @@
-import Chat from '../models/chat.js';
-import { PopulatedUser } from '../types/chat.types.js';
+import Chat, { ChatDocument } from '../models/chat.js';
+import { PopulatedUser, ChatParams } from '../types/chat.types.js';
 import { Request, Response } from 'express';
 import { asyncHandler } from '../utils/asyncHandler.js';
+import { ApiError } from '../utils/apiError.js';
 
 export const recentChat = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
     const user = req.user;
 
     if (!user) {
-      res.status(401).json({
-        success: false,
-        message: 'Unauthorized',
-      });
-      return;
+      throw new ApiError(401, 'Unauthorized');
     }
 
     const chats = await Chat.find({
@@ -42,7 +39,7 @@ export const recentChat = asyncHandler(
           lastName: other.lastName,
           photoUrl: other.photoUrl,
           lastMessage: last?.text || '',
-          lastMessageAt: last?.createdAt || (chat as any).updatedAt,
+          lastMessageAt: last?.createdAt || chat.updatedAt,
         };
       })
       .filter(Boolean);
@@ -52,19 +49,15 @@ export const recentChat = asyncHandler(
 );
 
 export const chatWithUser = asyncHandler(
-  async (req: Request, res: Response): Promise<void> => {
-    const { targetUserId } = req.params as { targetUserId: string };
+  async (req: Request<ChatParams>, res: Response): Promise<void> => {
+    const { targetUserId } = req.params;
     const user = req.user;
 
     if (!user) {
-      res.status(401).json({
-        success: false,
-        message: 'Unauthorized',
-      });
-      return;
+      throw new ApiError(401, 'Unauthorized');
     }
 
-    let chat = await Chat.findOne({
+    let chat: ChatDocument | null = await Chat.findOne({
       participants: { $all: [user._id, targetUserId], $size: 2 },
     }).populate({
       path: 'messages.senderId',

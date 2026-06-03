@@ -1,4 +1,4 @@
-import mongoose, { Types, InferSchemaType } from 'mongoose';
+import mongoose, { Types, InferSchemaType, HydratedDocument } from 'mongoose';
 
 const messageSchema = new mongoose.Schema(
   {
@@ -32,6 +32,8 @@ export type IChat = InferSchemaType<typeof chatSchema> & {
   createdAt: Date;
   updatedAt: Date;
 };
+
+export type ChatDocument = HydratedDocument<IChat>;
 
 const Chat = mongoose.model<IChat>('Chat', chatSchema);
 
