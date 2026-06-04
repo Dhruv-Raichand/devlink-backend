@@ -11,6 +11,7 @@ import crypto from 'crypto';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { Request, Response } from 'express';
 import { ApiError } from '../utils/apiError.js';
+import { SendResponse } from '../utils/sendResponse.js';
 
 export const createPayment = asyncHandler(
   async (req: Request, res: Response) => {
@@ -59,13 +60,12 @@ export const createPayment = asyncHandler(
 
     await payment.save();
 
-    res.status(201).json({
-      success: true,
-      data: {
-        orderId: order.id,
-        amount: order.amount,
-        currency: order.currency,
-      },
+    const { id, amount, currency } = order;
+
+    SendResponse(res, 201, 'Payment created successfully', {
+      orderId: id,
+      amount,
+      currency,
       keyId: process.env.RAZORPAY_KEY_ID,
     });
   }
@@ -95,7 +95,7 @@ export const verifyPayment = asyncHandler(
       throw new ApiError(404, 'Payment not found');
     }
 
-    res.status(200).json({ success: true });
+    SendResponse(res, 200, 'Payment verified successfully');
   }
 );
 
@@ -125,10 +125,7 @@ export const handleWebhook = asyncHandler(
     }
 
     if (payment.status === 'captured') {
-      return res.status(200).json({
-        success: true,
-        message: 'Payment already processed',
-      });
+      return SendResponse(res, 200, 'Payment already processed');
     }
 
     if (event.event === 'payment.captured') {
@@ -158,7 +155,7 @@ export const handleWebhook = asyncHandler(
       console.log('Payment failed for order:', paymentDetails.order_id);
     }
 
-    return res.status(200).json({ success: true });
+    SendResponse(res, 200, 'Webhook processed successfully');
   }
 );
 
@@ -179,9 +176,15 @@ export const getPaymentStatus = asyncHandler(
 
     if (payment.status === 'captured') {
       const user = await User.findById(req.user._id).select('-password');
-      return res.status(200).json({ success: true, ready: true, user });
+
+      return SendResponse(
+        res,
+        200,
+        'Payment status retrieved successfully',
+        user
+      );
     }
 
-    res.status(200).json({ success: true, ready: false });
+    SendResponse(res, 200, 'Payment status retrieved successfully');
   }
 );

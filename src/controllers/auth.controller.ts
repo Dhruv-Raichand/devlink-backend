@@ -10,6 +10,7 @@ import { Request, Response } from 'express';
 import { COOKIE_OPTIONS } from '../utils/constants.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { ApiError } from '../utils/apiError.js';
+import { SendResponse } from '../utils/sendResponse.js';
 
 export const signup = asyncHandler(
   async (req: SignupRequest, res: Response): Promise<void> => {
@@ -43,11 +44,12 @@ export const signup = asyncHandler(
 
     res.cookie('token', Token, COOKIE_OPTIONS);
 
-    res.status(201).json({
-      success: true,
-      message: 'Account created. Check your email for verification.',
-      data: sanitizeUser(signedUser),
-    });
+    SendResponse(
+      res,
+      201,
+      'Account created. Check your email for verification.',
+      sanitizeUser(signedUser)
+    );
   }
 );
 
@@ -68,20 +70,14 @@ export const login = asyncHandler(
 
     res.cookie('token', Token, COOKIE_OPTIONS);
 
-    res.json({
-      success: true,
-      message: 'Login Successful',
-      data: sanitizeUser(user),
-    });
+    SendResponse(res, 200, 'Login Successful', sanitizeUser(user));
   }
 );
 
 export const logout = (req: Request, res: Response): void => {
   res.cookie('token', null, { expires: new Date(Date.now()) });
-  res.json({
-    success: true,
-    message: 'Logout successful',
-  });
+
+  SendResponse(res, 200, 'Logout successful');
 };
 
 export const verifyEmail = asyncHandler(
@@ -106,7 +102,7 @@ export const verifyEmail = asyncHandler(
       $unset: { emailVerifyToken: '', emailVerifyExpiry: '' },
     });
 
-    res.json({ success: true, message: 'Email verified' });
+    SendResponse(res, 200, 'Email verified successfully');
   }
 );
 
@@ -140,6 +136,6 @@ export const resendVerification = asyncHandler(
       ),
     });
 
-    res.json({ success: true, message: 'Verification email sent' });
+    SendResponse(res, 200, 'Verification email sent');
   }
 );

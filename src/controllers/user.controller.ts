@@ -5,6 +5,7 @@ import { asyncHandler } from '../utils/asyncHandler.js';
 import { SAFE_USER_FIELDS, REQUEST_USER_FIELDS } from '../utils/constants.js';
 import { toSelectString } from '../utils/helper.js';
 import { Request, Response } from 'express';
+import { SendResponse } from '../utils/sendResponse.js';
 
 export const getReceivedRequests = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
@@ -27,14 +28,7 @@ export const getReceivedRequests = asyncHandler(
       fromUserId,
     }));
 
-    res.json({
-      success: true,
-      message:
-        received.length === 0
-          ? 'No received requests yet'
-          : 'Received requests fetched successfully',
-      data: received,
-    });
+    SendResponse(res, 200, 'Received requests fetched successfully', received);
   }
 );
 
@@ -60,20 +54,14 @@ export const getConnections = asyncHandler(
         'toUserId',
         toSelectString(SAFE_USER_FIELDS)
       );
+
     const connectionUsers = connections.map((row) => {
       return loggedInUser._id.toString() === row.toUserId._id.toString()
         ? row.fromUserId
         : row.toUserId;
     });
 
-    res.json({
-      success: true,
-      message:
-        connections.length === 0
-          ? 'No connections yet'
-          : 'Connections fetched successfully',
-      data: connectionUsers,
-    });
+    SendResponse(res, 200, 'Connections fetched successfully', connectionUsers);
   }
 );
 
@@ -133,16 +121,14 @@ export const getFeed = asyncHandler(
       User.countDocuments(query),
     ]);
 
-    res.json({
-      success: true,
-      message: users.length === 0 ? 'No new users found' : 'New users fetched',
+    SendResponse(res, 200, 'Feed fetched successfully', {
+      items: users,
       pagination: {
         totalUsers: totalCount,
         currentPage: page,
         totalPages: Math.ceil(totalCount / limit),
         limit,
       },
-      data: users,
     });
   }
 );
@@ -168,13 +154,6 @@ export const getSentRequests = asyncHandler(
       toUserId,
     }));
 
-    res.json({
-      success: true,
-      message:
-        sent.length === 0
-          ? 'No sent requests yet'
-          : 'Sent requests fetched successfully',
-      data: sent,
-    });
+    SendResponse(res, 200, 'Sent requests fetched successfully', sent);
   }
 );

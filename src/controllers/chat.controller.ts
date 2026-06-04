@@ -3,6 +3,7 @@ import { PopulatedUser, ChatParams } from '../types/chat.types.js';
 import { Request, Response } from 'express';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { ApiError } from '../utils/apiError.js';
+import { SendResponse } from '../utils/sendResponse.js';
 
 export const recentChat = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
@@ -44,7 +45,7 @@ export const recentChat = asyncHandler(
       })
       .filter(Boolean);
 
-    res.json({ success: true, data });
+    SendResponse(res, 200, 'Recent chats retrieved successfully', data);
   }
 );
 
@@ -71,9 +72,7 @@ export const chatWithUser = asyncHandler(
       });
       await chat.save();
     }
-    res.json({
-      success: true,
-      data: chat,
-    });
+
+    SendResponse(res, 200, 'Chat retrieved successfully', chat);
   }
 );

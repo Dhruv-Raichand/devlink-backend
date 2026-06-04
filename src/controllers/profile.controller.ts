@@ -7,14 +7,18 @@ import { PROFILE_USER_FIELDS } from '../utils/constants.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { Request, Response } from 'express';
 import { ApiError } from '../utils/apiError.js';
+import { SendResponse } from '../utils/sendResponse.js';
 
 export const getProfile = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
     const user = req.user;
-    res.json({
-      success: true,
-      data: sanitizeUser(user),
-    });
+
+    SendResponse(
+      res,
+      200,
+      'Profile retrieved successfully',
+      sanitizeUser(user)
+    );
   }
 );
 
@@ -35,11 +39,13 @@ export const editProfile = asyncHandler(
 
     await loggedInUser.save();
     const firstName = loggedInUser.firstName;
-    res.json({
-      success: true,
-      message: `${firstName}, your profile is updated successfully!!`,
-      data: sanitizeUser(loggedInUser),
-    });
+
+    SendResponse(
+      res,
+      200,
+      'Profile updated successfully',
+      sanitizeUser(loggedInUser)
+    );
   }
 );
 
@@ -69,11 +75,12 @@ export const changePassword = asyncHandler(
 
       await loggedInUser.save();
 
-      res.json({
-        success: true,
-        message: 'password update successfully',
-        data: sanitizeUser(loggedInUser),
-      });
+      SendResponse(
+        res,
+        200,
+        'Password updated successfully',
+        sanitizeUser(loggedInUser)
+      );
     } else {
       throw new ApiError(400, 'Current password is incorrect');
     }
@@ -96,7 +103,12 @@ export const viewUserProfile = asyncHandler(
       throw new ApiError(404, 'User not found');
     }
 
-    res.json({ success: true, data: user });
+    SendResponse(
+      res,
+      200,
+      'User profile retrieved successfully',
+      sanitizeUser(user)
+    );
   }
 );
 
@@ -110,6 +122,12 @@ export const completeOnboarding = asyncHandler(
       { $set: { onboardingComplete: true } },
       { new: true }
     );
-    res.json({ success: true, data: sanitizeUser(user) });
+
+    SendResponse(
+      res,
+      200,
+      'Onboarding completed successfully',
+      sanitizeUser(user)
+    );
   }
 );

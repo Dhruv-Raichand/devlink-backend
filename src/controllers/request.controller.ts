@@ -5,6 +5,7 @@ import { io, onlineUsers } from '../utils/socket.js';
 import { Request, Response } from 'express';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { ApiError } from '../utils/apiError.js';
+import { SendResponse } from '../utils/sendResponse.js';
 
 export const sendRequest = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
@@ -87,11 +88,7 @@ export const sendRequest = asyncHandler(
       }
     }
 
-    res.json({
-      success: true,
-      message: `${user.firstName} ${status} ${toUser.firstName}`,
-      data: Data,
-    });
+    SendResponse(res, 200, `Sent ${status} request successfully`, Data);
   }
 );
 
@@ -142,11 +139,8 @@ export const reviewRequest = asyncHandler(
     }
 
     const data = await request.save();
-    res.json({
-      success: true,
-      message: `Connection request  ${status}`,
-      data: data,
-    });
+
+    SendResponse(res, 200, `Request ${status} successfully`, data);
   }
 );
 
@@ -174,7 +168,7 @@ export const withdrawRequest = asyncHandler(
       throw new ApiError(404, 'Request not found or already reviewed');
     }
 
-    res.json({ success: true, message: 'Request withdrawn' });
+    SendResponse(res, 200, 'Request withdrawn');
   }
 );
 
@@ -204,6 +198,6 @@ export const removeConnection = asyncHandler(
       throw new ApiError(404, 'Connection not found');
     }
 
-    res.json({ success: true, message: 'Connection removed' });
+    SendResponse(res, 200, 'Connection removed');
   }
 );
