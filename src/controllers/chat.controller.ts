@@ -1,20 +1,16 @@
-import Chat from '../models/chat.js';
-import { PopulatedUser } from '../types/chat.types.js';
+import Chat, { ChatDocument } from '../models/chat.js';
+import { PopulatedUser, ChatParams } from '../types/chat.types.js';
 import { Request, Response } from 'express';
+import { asyncHandler } from '../utils/asyncHandler.js';
+import { ApiError } from '../utils/apiError.js';
+import { SendResponse } from '../utils/sendResponse.js';
 
-export const recentChat = async (
-  req: Request,
-  res: Response
-): Promise<void> => {
-  try {
+export const recentChat = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
     const user = req.user;
 
     if (!user) {
-      res.status(401).json({
-        success: false,
-        message: 'Unauthorized',
-      });
-      return;
+      throw new ApiError(401, 'Unauthorized');
     }
 
     const chats = await Chat.find({
@@ -44,34 +40,25 @@ export const recentChat = async (
           lastName: other.lastName,
           photoUrl: other.photoUrl,
           lastMessage: last?.text || '',
-          lastMessageAt: last?.createdAt || (chat as any).updatedAt,
+          lastMessageAt: last?.createdAt || chat.updatedAt,
         };
       })
-      .filter(Boolean); // remove any nulls
+      .filter(Boolean);
 
-    res.json({ success: true, data });
-  } catch (err: any) {
-    res.status(500).json({ success: false, message: err.message });
+    SendResponse(res, 200, 'Recent chats retrieved successfully', data);
   }
-};
+);
 
-export const chatWithUser = async (
-  req: Request,
-  res: Response
-): Promise<void> => {
-  const { targetUserId } = req.params as { targetUserId: string };
-  const user = req.user;
+export const chatWithUser = asyncHandler(
+  async (req: Request<ChatParams>, res: Response): Promise<void> => {
+    const { targetUserId } = req.params;
+    const user = req.user;
 
-  if (!user) {
-    res.status(401).json({
-      success: false,
-      message: 'Unauthorized',
-    });
-    return;
-  }
+    if (!user) {
+      throw new ApiError(401, 'Unauthorized');
+    }
 
-  try {
-    let chat = await Chat.findOne({
+    let chat: ChatDocument | null = await Chat.findOne({
       participants: { $all: [user._id, targetUserId], $size: 2 },
     }).populate({
       path: 'messages.senderId',
@@ -85,15 +72,7 @@ export const chatWithUser = async (
       });
       await chat.save();
     }
-    res.json({
-      success: true,
-      data: chat,
-    });
-  } catch (err: any) {
-    console.error(err);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch chat',
-    });
+
+    SendResponse(res, 200, 'Chat retrieved successfully', chat);
   }
-};
+);

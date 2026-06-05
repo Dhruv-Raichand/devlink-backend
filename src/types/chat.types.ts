@@ -6,3 +6,7 @@ export interface PopulatedUser {
   lastName: string;
   photoUrl: string;
 }
+
+export type ChatParams = {
+  targetUserId: string;
+};

@@ -4,29 +4,34 @@ import validator from 'validator';
 import { sanitizeUser, toSelectString } from '../utils/helper.js';
 import User from '../models/user.js';
 import { PROFILE_USER_FIELDS } from '../utils/constants.js';
+import { asyncHandler } from '../utils/asyncHandler.js';
+import { Request, Response } from 'express';
+import { ApiError } from '../utils/apiError.js';
+import { SendResponse } from '../utils/sendResponse.js';
 
-export const getProfile = async (req: any, res: any): Promise<void> => {
-  try {
+export const getProfile = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
     const user = req.user;
-    res.json({
-      success: true,
-      data: sanitizeUser(user),
-    });
-  } catch (err: any) {
-    res.status(400).json({
-      success: false,
-      message: err.message,
-    });
-  }
-};
 
-export const editProfile = async (req: any, res: any): Promise<void> => {
-  try {
+    SendResponse(
+      res,
+      200,
+      'Profile retrieved successfully',
+      sanitizeUser(user)
+    );
+  }
+);
+
+export const editProfile = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
     if (!validateUserEdit(req.body)) {
-      throw new Error('Invalid update request');
+      throw new ApiError(400, 'Invalid update request');
     }
 
     let loggedInUser = req.user;
+    if (!loggedInUser) {
+      throw new ApiError(401, 'Unauthorized');
+    }
 
     delete req.body.password;
 
@@ -34,57 +39,60 @@ export const editProfile = async (req: any, res: any): Promise<void> => {
 
     await loggedInUser.save();
     const firstName = loggedInUser.firstName;
-    res.json({
-      success: true,
-      message: `${firstName}, your profile is updated successfully!!`,
-      data: sanitizeUser(loggedInUser),
-    });
-  } catch (err: any) {
-    res.status(400).json({
-      success: false,
-      message: err.message,
-    });
-  }
-};
 
-export const changePassword = async (req: any, res: any): Promise<void> => {
-  try {
+    SendResponse(
+      res,
+      200,
+      'Profile updated successfully',
+      sanitizeUser(loggedInUser)
+    );
+  }
+);
+
+export const changePassword = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
     const { password, newPassword } = req.body;
     if (!password || !newPassword) {
-      throw new Error('current password and new password is required');
+      throw new ApiError(400, 'Current password and new password are required');
     } else if (password === newPassword) {
-      throw new Error('new password should not be same as current password');
+      throw new ApiError(
+        400,
+        'New password should not be the same as the current password'
+      );
     } else if (!validator.isStrongPassword(newPassword)) {
-      throw new Error('new password is weak');
+      throw new ApiError(400, 'New password is weak');
     }
+
     const loggedInUser = req.user;
+    if (!loggedInUser) {
+      throw new ApiError(401, 'Unauthorized');
+    }
+
     const isCorrect = await bcrypt.compare(password, loggedInUser.password);
     if (isCorrect) {
       const newPasswordHash = await bcrypt.hash(newPassword, 10);
       loggedInUser.password = newPasswordHash;
-      await loggedInUser.save();
-      res.json({
-        success: true,
-        message: 'password update successfully',
-        data: sanitizeUser(loggedInUser),
-      });
-    } else {
-      throw new Error('password is not matched');
-    }
-  } catch (err: any) {
-    res.status(400).json({
-      success: false,
-      message: err.message,
-    });
-  }
-};
 
-export const viewUserProfile = async (req: any, res: any): Promise<void> => {
-  try {
+      await loggedInUser.save();
+
+      SendResponse(
+        res,
+        200,
+        'Password updated successfully',
+        sanitizeUser(loggedInUser)
+      );
+    } else {
+      throw new ApiError(400, 'Current password is incorrect');
+    }
+  }
+);
+
+export const viewUserProfile = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
     const { userId } = req.params;
 
-    if (!validator.isMongoId(userId)) {
-      throw new Error('Invalid userId');
+    if (typeof userId !== 'string' || !validator.isMongoId(userId)) {
+      throw new ApiError(400, 'Invalid userId');
     }
 
     const user = await User.findById(userId).select(
@@ -92,25 +100,34 @@ export const viewUserProfile = async (req: any, res: any): Promise<void> => {
     );
 
     if (!user) {
-      res.status(404).json({ success: false, message: 'User not found' });
-      return;
+      throw new ApiError(404, 'User not found');
     }
 
-    res.json({ success: true, data: user });
-  } catch (err: any) {
-    res.status(400).json({ success: false, message: err.message });
+    SendResponse(
+      res,
+      200,
+      'User profile retrieved successfully',
+      sanitizeUser(user)
+    );
   }
-};
+);
 
-export const completeOnboarding = async (req: any, res: any): Promise<void> => {
-  try {
+export const completeOnboarding = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    if (!req.user) {
+      throw new ApiError(401, 'Unauthorized');
+    }
     const user = await User.findByIdAndUpdate(
       req.user._id,
       { $set: { onboardingComplete: true } },
       { new: true }
     );
-    res.json({ success: true, data: sanitizeUser(user) });
-  } catch (err: any) {
-    res.status(500).json({ success: false, message: err.message });
+
+    SendResponse(
+      res,
+      200,
+      'Onboarding completed successfully',
+      sanitizeUser(user)
+    );
   }
-};
+);

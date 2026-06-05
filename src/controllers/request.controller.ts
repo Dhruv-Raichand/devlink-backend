@@ -2,29 +2,37 @@ import User from '../models/user.js';
 import validator from 'validator';
 import ConnectionModel from '../models/connection.js';
 import { io, onlineUsers } from '../utils/socket.js';
+import { Request, Response } from 'express';
+import { asyncHandler } from '../utils/asyncHandler.js';
+import { ApiError } from '../utils/apiError.js';
+import { SendResponse } from '../utils/sendResponse.js';
 
-export const sendRequest = async (req: any, res: any): Promise<void> => {
-  try {
+export const sendRequest = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
     const { status, toUserId } = req.params;
+
     const user = req.user;
+    if (!user) {
+      throw new ApiError(401, 'Unauthorized');
+    }
     const fromUserId = user._id;
 
     const allowed_status = ['interested', 'ignored'];
-    if (!allowed_status.includes(status)) {
-      throw new Error('Invalid Status Type ' + status);
+    if (typeof status !== 'string' || !allowed_status.includes(status)) {
+      throw new ApiError(400, `Invalid Status Type: ${status}`);
     }
 
-    if (!validator.isMongoId(toUserId)) {
-      throw new Error('Invalid userId');
+    if (typeof toUserId !== 'string' || !validator.isMongoId(toUserId)) {
+      throw new ApiError(400, 'Invalid userId');
     }
 
     if (fromUserId.toString() === toUserId) {
-      throw new Error('sending request to yourself is not allowed');
+      throw new ApiError(400, 'sending request to yourself is not allowed');
     }
 
     const toUser = await User.findOne({ _id: toUserId });
     if (!toUser) {
-      throw new Error('User not found');
+      throw new ApiError(404, 'User not found');
     }
 
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
@@ -38,7 +46,7 @@ export const sendRequest = async (req: any, res: any): Promise<void> => {
       $nor: [{ status: 'ignored', createdAt: { $lt: thirtyDaysAgo } }],
     });
     if (validateRequest) {
-      throw new Error('request already exist');
+      throw new ApiError(400, 'request already exist');
     }
 
     const existingRequest = await ConnectionModel.findOne({
@@ -54,7 +62,7 @@ export const sendRequest = async (req: any, res: any): Promise<void> => {
         existingRequest.createdAt < thirtyDaysAgo;
 
       if (!isExpiredIgnore) {
-        throw new Error('request already exist');
+        throw new ApiError(400, 'request already exist');
       }
 
       await ConnectionModel.deleteOne({ _id: existingRequest._id });
@@ -73,37 +81,36 @@ export const sendRequest = async (req: any, res: any): Promise<void> => {
       if (targetSocketId) {
         io.to(targetSocketId).emit('newNotification', {
           type: 'request',
-          from: req.user.firstName,
+          from: user.firstName,
           text: 'sent you a connection request',
-          targetUserId: req.user._id.toString(),
+          targetUserId: user._id.toString(),
         });
       }
     }
 
-    res.json({
-      success: true,
-      message: `${user.firstName} ${status} ${toUser.firstName}`,
-      data: Data,
-    });
-  } catch (err: any) {
-    res.status(400).json({
-      success: false,
-      message: err.message,
-    });
+    SendResponse(res, 200, `Sent ${status} request successfully`, Data);
   }
-};
+);
 
-export const reviewRequest = async (req: any, res: any): Promise<void> => {
-  try {
+export const reviewRequest = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
     const { status, requestId } = req.params;
-    const toUserId = req.user._id;
+
+    const user = req.user;
+    if (!user) {
+      throw new ApiError(401, 'Unauthorized');
+    }
+    const toUserId = user._id;
+
     const allowedStatuses = ['accepted', 'rejected'];
-    if (!allowedStatuses.includes(status)) {
-      throw new Error('Invalid Request ' + status);
+    if (typeof status !== 'string' || !allowedStatuses.includes(status)) {
+      throw new ApiError(400, `Invalid Request Status: ${status}`);
     }
-    if (!validator.isMongoId(requestId)) {
-      throw new Error('Invalid requestId');
+
+    if (typeof requestId !== 'string' || !validator.isMongoId(requestId)) {
+      throw new ApiError(400, 'Invalid requestId');
     }
+
     const request = await ConnectionModel.findOne({
       _id: requestId,
       toUserId,
@@ -111,11 +118,7 @@ export const reviewRequest = async (req: any, res: any): Promise<void> => {
     });
 
     if (!request) {
-      return res.json({
-        success: true,
-        message: 'No pending requests to review',
-        data: [],
-      });
+      throw new ApiError(404, 'Request not found or already reviewed');
     }
 
     if (status === 'accepted') {
@@ -123,35 +126,36 @@ export const reviewRequest = async (req: any, res: any): Promise<void> => {
       if (targetSocketId) {
         io.to(targetSocketId).emit('newNotification', {
           type: 'request_accepted',
-          from: req.user.firstName,
+          from: user.firstName,
           text: 'accepted your connection request',
-          targetUserId: req.user._id.toString(),
+          targetUserId: user._id.toString(),
         });
       }
+      request.status = 'accepted';
     }
 
-    request.status = status;
+    if (status === 'rejected') {
+      request.status = 'rejected';
+    }
+
     const data = await request.save();
-    res.json({
-      success: true,
-      message: `Connection request  ${status}`,
-      data: data,
-    });
-  } catch (err: any) {
-    res.status(400).json({
-      success: false,
-      message: err.message,
-    });
+
+    SendResponse(res, 200, `Request ${status} successfully`, data);
   }
-};
+);
 
-export const withdrawRequest = async (req: any, res: any): Promise<void> => {
-  try {
+export const withdrawRequest = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
     const { requestId } = req.params;
-    const loggedInUser = req.user._id;
 
-    if (!validator.isMongoId(requestId)) {
-      throw new Error('Invalid requestId');
+    const user = req.user;
+    if (!user) {
+      throw new ApiError(401, 'Unauthorized');
+    }
+    const loggedInUser = user._id;
+
+    if (typeof requestId !== 'string' || !validator.isMongoId(requestId)) {
+      throw new ApiError(400, 'Invalid requestId');
     }
 
     const request = await ConnectionModel.findOneAndDelete({
@@ -161,22 +165,26 @@ export const withdrawRequest = async (req: any, res: any): Promise<void> => {
     });
 
     if (!request) {
-      throw new Error('Request not found or already reviewed');
+      throw new ApiError(404, 'Request not found or already reviewed');
     }
 
-    res.json({ success: true, message: 'Request withdrawn' });
-  } catch (err: any) {
-    res.status(400).json({ success: false, message: err.message });
+    SendResponse(res, 200, 'Request withdrawn');
   }
-};
+);
 
-export const removeConnection = async (req: any, res: any): Promise<void> => {
-  try {
+export const removeConnection = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
     const { userId } = req.params;
-    const loggedInUser = req.user._id;
 
-    if (!validator.isMongoId(userId)) {
-      throw new Error('Invalid userId');
+    const user = req.user;
+    if (!user) {
+      throw new ApiError(401, 'Unauthorized');
+    }
+
+    const loggedInUser = user._id;
+
+    if (typeof userId !== 'string' || !validator.isMongoId(userId)) {
+      throw new ApiError(400, 'Invalid userId');
     }
 
     const connection = await ConnectionModel.findOneAndDelete({
@@ -187,11 +195,9 @@ export const removeConnection = async (req: any, res: any): Promise<void> => {
     });
 
     if (!connection) {
-      throw new Error('Connection not found');
+      throw new ApiError(404, 'Connection not found');
     }
 
-    res.json({ success: true, message: 'Connection removed' });
-  } catch (err: any) {
-    res.status(400).json({ success: false, message: err.message });
+    SendResponse(res, 200, 'Connection removed');
   }
-};
+);

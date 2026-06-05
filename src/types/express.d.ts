@@ -1,9 +1,9 @@
-import { IUser } from '../models/user.js';
+import { UserDocument } from '../models/user.js';
 
 declare global {
   namespace Express {
     interface Request {
-      user?: IUser;
+      user?: UserDocument;
 
       rateLimit?: {
         limit: number;
