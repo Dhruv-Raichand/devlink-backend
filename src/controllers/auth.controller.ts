@@ -2,12 +2,19 @@ import User from '../models/user.js';
 import bcrypt from 'bcrypt';
 import { validate } from '../utils/validate.js';
 import { sanitizeUser } from '../utils/helper.js';
-import { generateToken } from '../utils/token.js';
+import {
+  generateToken,
+  generateRefreshToken,
+  generateAccessToken,
+} from '../utils/token.js';
 import { verificationEmail } from '../utils/emailTemplates.js';
 import sendEmail from '../utils/sendEmail.js';
 import { SignupRequest, LoginRequest } from '../types/auth.types.js';
 import { Request, Response } from 'express';
-import { COOKIE_OPTIONS } from '../utils/constants.js';
+import {
+  ACCESS_COOKIE_OPTIONS,
+  REFRESH_COOKIE_OPTIONS,
+} from '../utils/constants.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { ApiError } from '../utils/apiError.js';
 import { SendResponse } from '../utils/sendResponse.js';
@@ -66,19 +73,33 @@ export const login = asyncHandler(
       throw new ApiError(400, 'Invalid Credentials');
     }
 
-    const Token = await user.getJWT();
+    const refreshToken = generateRefreshToken(user._id.toString());
+    const accessToken = generateAccessToken(user._id.toString());
 
-    res.cookie('token', Token, COOKIE_OPTIONS);
+    user.refreshToken = refreshToken;
+
+    await user.save();
+
+    res.cookie('accessToken', accessToken, ACCESS_COOKIE_OPTIONS);
+    res.cookie('refreshToken', refreshToken, REFRESH_COOKIE_OPTIONS);
 
     SendResponse(res, 200, 'Login Successful', sanitizeUser(user));
   }
 );
 
-export const logout = (req: Request, res: Response): void => {
-  res.cookie('token', null, { expires: new Date(Date.now()) });
+export const logout = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    if (req.user) {
+      req.user.refreshToken = null;
+      await req.user.save();
+    }
 
-  SendResponse(res, 200, 'Logout successful');
-};
+    res.clearCookie('refreshToken', { path: REFRESH_COOKIE_OPTIONS.path });
+    res.clearCookie('accessToken', { path: ACCESS_COOKIE_OPTIONS.path });
+
+    SendResponse(res, 200, 'Logout successful');
+  }
+);
 
 export const verifyEmail = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
