@@ -7,7 +7,6 @@ import {
   verifyEmail,
   resendVerification,
 } from '../controllers/auth.controller.js';
-import userAuth from '../middlewares/auth.js';
 import rateLimit from 'express-rate-limit';
 
 const authLimit = rateLimit({
@@ -39,6 +38,6 @@ authRouter.post('/logout', logout);
 
 authRouter.get('/verify-email', verifyEmail);
 
-authRouter.post('/resend-verification', userAuth, resendVerification);
+authRouter.post('/resend-verification', resendVerification);
 
 export default authRouter;

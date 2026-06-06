@@ -47,10 +47,6 @@ export const signup = asyncHandler(
       ),
     });
 
-    const Token = await signedUser.getJWT();
-
-    res.cookie('token', Token, COOKIE_OPTIONS);
-
     SendResponse(
       res,
       201,
@@ -66,6 +62,10 @@ export const login = asyncHandler(
     const user = await User.findOne({ emailId });
     if (!user) {
       throw new ApiError(400, 'Invalid Credentials');
+    }
+
+    if (!user.emailVerified) {
+      throw new ApiError(403, 'Please verify your email before logging in');
     }
 
     const isCorrect = await user.comparePasswords(password);
@@ -129,34 +129,31 @@ export const verifyEmail = asyncHandler(
 
 export const resendVerification = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
-    const user = req.user;
+    const { emailId } = req.body;
 
-    if (!user) {
-      throw new ApiError(401, 'Unauthorized');
+    const user = await User.findOne({ emailId });
+
+    if (user && !user.emailVerified) {
+      const verifyToken = generateToken();
+
+      user.emailVerifyToken = hashToken(verifyToken);
+      user.emailVerifyExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
+      await user.save();
+
+      await sendEmail({
+        to: user.emailId,
+        subject: 'Verify your DevLink email',
+        html: verificationEmail(
+          user.firstName,
+          `${process.env.FRONTEND_URL}/verify-email?token=${verifyToken}`
+        ),
+      });
     }
 
-    if (user.emailVerified) {
-      throw new ApiError(400, 'Email already verified');
-    }
-
-    const verifyToken = generateToken();
-
-    await User.findByIdAndUpdate(user._id, {
-      $set: {
-        emailVerifyToken: verifyToken,
-        emailVerifyExpiry: new Date(Date.now() + 24 * 60 * 60 * 1000),
-      },
-    });
-
-    await sendEmail({
-      to: user.emailId,
-      subject: 'Verify your DevLink email',
-      html: verificationEmail(
-        user.firstName,
-        `${process.env.FRONTEND_URL}/verify-email?token=${verifyToken}`
-      ),
-    });
-
-    SendResponse(res, 200, 'Verification email sent');
+    SendResponse(
+      res,
+      200,
+      'If an account exists, a verification email has been sent.'
+    );
   }
 );
