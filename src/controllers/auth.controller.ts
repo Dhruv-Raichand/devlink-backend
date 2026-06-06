@@ -6,6 +6,7 @@ import {
   generateToken,
   generateRefreshToken,
   generateAccessToken,
+  hashToken,
 } from '../utils/token.js';
 import { verificationEmail } from '../utils/emailTemplates.js';
 import sendEmail from '../utils/sendEmail.js';
@@ -32,7 +33,7 @@ export const signup = asyncHandler(
       lastName,
       emailId,
       password: hashedPassword,
-      emailVerifyToken: verifyToken,
+      emailVerifyToken: hashToken(verifyToken),
       emailVerifyExpiry: new Date(Date.now() + 24 * 60 * 60 * 1000),
     });
 
@@ -76,7 +77,7 @@ export const login = asyncHandler(
     const refreshToken = generateRefreshToken(user._id.toString());
     const accessToken = generateAccessToken(user._id.toString());
 
-    user.refreshToken = refreshToken;
+    user.refreshToken = hashToken(refreshToken);
 
     await user.save();
 
@@ -110,7 +111,7 @@ export const verifyEmail = asyncHandler(
     }
 
     const user = await User.findOne({
-      emailVerifyToken: token,
+      emailVerifyToken: hashToken(token),
       emailVerifyExpiry: { $gt: new Date() },
     });
 

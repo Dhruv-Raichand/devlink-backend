@@ -19,14 +19,16 @@ export type BillingCycle = 'MONTHLY' | 'YEARLY';
 export const ACCESS_COOKIE_OPTIONS = {
   httpOnly: true,
   secure: true,
-  sameSite: 'none' as const,
+  sameSite: 'strict' as const,
+  path: '/',
   maxAge: 15 * 60 * 1000,
 };
 
 export const REFRESH_COOKIE_OPTIONS = {
   httpOnly: true,
   secure: true,
-  sameSite: 'none' as const,
+  sameSite: 'strict' as const,
+  path: 'api/auth',
   maxAge: 30 * 24 * 60 * 60 * 1000,
 };
 

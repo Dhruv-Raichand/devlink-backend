@@ -5,6 +5,9 @@ import type { StringValue } from 'ms';
 export const generateToken = (): string =>
   crypto.randomBytes(32).toString('hex');
 
+export const hashToken = (token: string) =>
+  crypto.createHash('sha256').update(token).digest('hex');
+
 export const generateAccessToken = (userId: string) => {
   const secret = process.env.ACCESS_TOKEN_SECRET_KEY;
   const expiry = process.env.ACCESS_TOKEN_EXPIRY;
