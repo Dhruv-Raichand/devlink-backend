@@ -3,6 +3,7 @@ const authRouter = Express.Router();
 import {
   signup,
   login,
+  refresh,
   logout,
   verifyEmail,
   resendVerification,
@@ -35,6 +36,8 @@ authRouter.post('/signup', authLimit, signup);
 authRouter.post('/login', authLimit, login);
 
 authRouter.post('/logout', logout);
+
+authRouter.post('/refresh', refresh);
 
 authRouter.get('/verify-email', verifyEmail);
 

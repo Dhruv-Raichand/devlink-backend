@@ -1,4 +1,5 @@
 import User from '../models/user.js';
+import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 import { validate } from '../utils/validate.js';
 import { sanitizeUser } from '../utils/helper.js';
@@ -87,6 +88,46 @@ export const login = asyncHandler(
     SendResponse(res, 200, 'Login Successful', sanitizeUser(user));
   }
 );
+
+export const refresh = asyncHandler(async (req: Request, res: Response) => {
+  const refreshToken = req.cookies.refreshToken;
+
+  if (!refreshToken) {
+    throw new ApiError(401, 'Refresh token missing');
+  }
+
+  const refreshTokenSecret = process.env.REFRESH_TOKEN_SECRET_KEY as string;
+  if (!refreshTokenSecret) {
+    throw new ApiError(500, 'Server configuration error');
+  }
+
+  let payload: { userId: string };
+
+  try {
+    payload = jwt.verify(refreshToken, refreshTokenSecret) as {
+      userId: string;
+    };
+  } catch {
+    throw new ApiError(401, 'Invalid refresh token');
+  }
+
+  const user = await User.findById(payload.userId);
+
+  if (!user || user.refreshToken !== hashToken(refreshToken)) {
+    throw new ApiError(401, 'Invalid refresh token');
+  }
+
+  const accessToken = generateAccessToken(user._id.toString());
+  const newRefreshToken = generateRefreshToken(user._id.toString());
+
+  user.refreshToken = hashToken(newRefreshToken);
+  await user.save();
+
+  res.cookie('accessToken', accessToken, ACCESS_COOKIE_OPTIONS);
+  res.cookie('refreshToken', newRefreshToken, REFRESH_COOKIE_OPTIONS);
+
+  SendResponse(res, 200, 'Token refreshed');
+});
 
 export const logout = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
