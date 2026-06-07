@@ -1,51 +1,42 @@
 import jwt, { JwtPayload } from 'jsonwebtoken';
 import User from '../models/user.js';
 import { Response, Request, NextFunction } from 'express';
+import { ApiError } from '../utils/apiError.js';
+import { asyncHandler } from '../utils/asyncHandler.js';
 
-const userAuth = async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const { token } = req.cookies;
-    if (!token) {
-      return res.status(401).json({
-        success: false,
-        message: 'Authentication Required',
-      });
+const userAuth = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const { accessToken } = req.cookies;
+    if (!accessToken) {
+      throw new ApiError(401, 'Authentication Required');
     }
 
-    const JWT_SECRET = process.env.JWT_SECRET_KEY;
-    if (!JWT_SECRET) {
-      throw new Error('JWT_SECRET_KEY is not configured');
+    const ACCESS_SECRET = process.env.ACCESS_TOKEN_SECRET_KEY;
+    if (!ACCESS_SECRET) {
+      throw new ApiError(500, 'Server configuration error');
     }
 
-    const decoded = jwt.verify(token, JWT_SECRET) as JwtPayload;
+    let decoded: JwtPayload & { userId: string };
 
-    if (typeof decoded === 'object' && decoded !== null && '_id' in decoded) {
-      const _id = decoded._id as string;
-
-      const user = await User.findById(_id);
-
-      if (!user) {
-        return res.status(401).json({
-          success: false,
-          message: 'Invalid authentication token',
-        });
-      }
-
-      req.user = user;
-      next();
-    } else {
-      return res.status(401).json({
-        success: false,
-        message: 'Invalid authentication token payload',
-      });
+    try {
+      decoded = jwt.verify(accessToken, ACCESS_SECRET) as JwtPayload & {
+        userId: string;
+      };
+    } catch {
+      throw new ApiError(401, 'Invalid or expired access token');
     }
-  } catch (err: any) {
-    console.error('Auth error:', err.message);
-    res.status(401).json({
-      success: false,
-      message: 'Invalid or expired token',
-    });
+
+    const userId = decoded.userId;
+
+    const user = await User.findById(userId).select('-password -refreshToken');
+
+    if (!user) {
+      throw new ApiError(401, 'User not found');
+    }
+
+    req.user = user;
+    return next();
   }
-};
+);
 
 export default userAuth;

@@ -1,13 +1,22 @@
 import User from '../models/user.js';
+import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 import { validate } from '../utils/validate.js';
 import { sanitizeUser } from '../utils/helper.js';
-import { generateToken } from '../utils/token.js';
+import {
+  generateToken,
+  generateRefreshToken,
+  generateAccessToken,
+  hashToken,
+} from '../utils/token.js';
 import { verificationEmail } from '../utils/emailTemplates.js';
 import sendEmail from '../utils/sendEmail.js';
 import { SignupRequest, LoginRequest } from '../types/auth.types.js';
 import { Request, Response } from 'express';
-import { COOKIE_OPTIONS } from '../utils/constants.js';
+import {
+  ACCESS_COOKIE_OPTIONS,
+  REFRESH_COOKIE_OPTIONS,
+} from '../utils/constants.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { ApiError } from '../utils/apiError.js';
 import { SendResponse } from '../utils/sendResponse.js';
@@ -25,7 +34,7 @@ export const signup = asyncHandler(
       lastName,
       emailId,
       password: hashedPassword,
-      emailVerifyToken: verifyToken,
+      emailVerifyToken: hashToken(verifyToken),
       emailVerifyExpiry: new Date(Date.now() + 24 * 60 * 60 * 1000),
     });
 
@@ -39,10 +48,6 @@ export const signup = asyncHandler(
         `${process.env.FRONTEND_URL}/verify-email?token=${verifyToken}`
       ),
     });
-
-    const Token = await signedUser.getJWT();
-
-    res.cookie('token', Token, COOKIE_OPTIONS);
 
     SendResponse(
       res,
@@ -61,24 +66,82 @@ export const login = asyncHandler(
       throw new ApiError(400, 'Invalid Credentials');
     }
 
+    if (!user.emailVerified) {
+      throw new ApiError(403, 'Please verify your email before logging in');
+    }
+
     const isCorrect = await user.comparePasswords(password);
     if (!isCorrect) {
       throw new ApiError(400, 'Invalid Credentials');
     }
 
-    const Token = await user.getJWT();
+    const refreshToken = generateRefreshToken(user._id.toString());
+    const accessToken = generateAccessToken(user._id.toString());
 
-    res.cookie('token', Token, COOKIE_OPTIONS);
+    user.refreshToken = hashToken(refreshToken);
+
+    await user.save();
+
+    res.cookie('accessToken', accessToken, ACCESS_COOKIE_OPTIONS);
+    res.cookie('refreshToken', refreshToken, REFRESH_COOKIE_OPTIONS);
 
     SendResponse(res, 200, 'Login Successful', sanitizeUser(user));
   }
 );
 
-export const logout = (req: Request, res: Response): void => {
-  res.cookie('token', null, { expires: new Date(Date.now()) });
+export const refresh = asyncHandler(async (req: Request, res: Response) => {
+  const refreshToken = req.cookies.refreshToken;
 
-  SendResponse(res, 200, 'Logout successful');
-};
+  if (!refreshToken) {
+    throw new ApiError(401, 'Refresh token missing');
+  }
+
+  const refreshTokenSecret = process.env.REFRESH_TOKEN_SECRET_KEY as string;
+  if (!refreshTokenSecret) {
+    throw new ApiError(500, 'Server configuration error');
+  }
+
+  let payload: { userId: string };
+
+  try {
+    payload = jwt.verify(refreshToken, refreshTokenSecret) as {
+      userId: string;
+    };
+  } catch {
+    throw new ApiError(401, 'Invalid refresh token');
+  }
+
+  const user = await User.findById(payload.userId);
+
+  if (!user || user.refreshToken !== hashToken(refreshToken)) {
+    throw new ApiError(401, 'Invalid refresh token');
+  }
+
+  const accessToken = generateAccessToken(user._id.toString());
+  const newRefreshToken = generateRefreshToken(user._id.toString());
+
+  user.refreshToken = hashToken(newRefreshToken);
+  await user.save();
+
+  res.cookie('accessToken', accessToken, ACCESS_COOKIE_OPTIONS);
+  res.cookie('refreshToken', newRefreshToken, REFRESH_COOKIE_OPTIONS);
+
+  SendResponse(res, 200, 'Token refreshed');
+});
+
+export const logout = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    if (req.user) {
+      req.user.refreshToken = null;
+      await req.user.save();
+    }
+
+    res.clearCookie('refreshToken', { path: REFRESH_COOKIE_OPTIONS.path });
+    res.clearCookie('accessToken', { path: ACCESS_COOKIE_OPTIONS.path });
+
+    SendResponse(res, 200, 'Logout successful');
+  }
+);
 
 export const verifyEmail = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
@@ -89,7 +152,7 @@ export const verifyEmail = asyncHandler(
     }
 
     const user = await User.findOne({
-      emailVerifyToken: token,
+      emailVerifyToken: hashToken(token),
       emailVerifyExpiry: { $gt: new Date() },
     });
 
@@ -108,34 +171,31 @@ export const verifyEmail = asyncHandler(
 
 export const resendVerification = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
-    const user = req.user;
+    const { emailId } = req.body;
 
-    if (!user) {
-      throw new ApiError(401, 'Unauthorized');
+    const user = await User.findOne({ emailId });
+
+    if (user && !user.emailVerified) {
+      const verifyToken = generateToken();
+
+      user.emailVerifyToken = hashToken(verifyToken);
+      user.emailVerifyExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
+      await user.save();
+
+      await sendEmail({
+        to: user.emailId,
+        subject: 'Verify your DevLink email',
+        html: verificationEmail(
+          user.firstName,
+          `${process.env.FRONTEND_URL}/verify-email?token=${verifyToken}`
+        ),
+      });
     }
 
-    if (user.emailVerified) {
-      throw new ApiError(400, 'Email already verified');
-    }
-
-    const verifyToken = generateToken();
-
-    await User.findByIdAndUpdate(user._id, {
-      $set: {
-        emailVerifyToken: verifyToken,
-        emailVerifyExpiry: new Date(Date.now() + 24 * 60 * 60 * 1000),
-      },
-    });
-
-    await sendEmail({
-      to: user.emailId,
-      subject: 'Verify your DevLink email',
-      html: verificationEmail(
-        user.firstName,
-        `${process.env.FRONTEND_URL}/verify-email?token=${verifyToken}`
-      ),
-    });
-
-    SendResponse(res, 200, 'Verification email sent');
+    SendResponse(
+      res,
+      200,
+      'If an account exists, a verification email has been sent.'
+    );
   }
 );

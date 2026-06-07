@@ -1,6 +1,5 @@
 import mongoose, { HydratedDocument } from 'mongoose';
 import validator from 'validator';
-import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 
 export interface IUser {
@@ -9,6 +8,7 @@ export interface IUser {
   lastName?: string;
   emailId: string;
   password: string;
+  refreshToken: string | null;
   age?: number;
   gender?: 'male' | 'female' | 'others';
   photoUrl?: string;
@@ -25,7 +25,6 @@ export interface IUser {
 }
 
 interface IUserMethods {
-  getJWT(): Promise<string>;
   comparePasswords(passwordByUser: string): Promise<boolean>;
 }
 
@@ -69,6 +68,8 @@ const userSchema = new mongoose.Schema<
         }
       },
     },
+
+    refreshToken: { type: String, default: null },
 
     age: {
       type: Number,
@@ -156,15 +157,6 @@ const userSchema = new mongoose.Schema<
   },
   { timestamps: true }
 );
-
-userSchema.methods.getJWT = async function (): Promise<string> {
-  if (!process.env.JWT_SECRET_KEY)
-    throw new Error('JWT_SECRET_KEY is not defined');
-  const token = jwt.sign({ _id: this._id }, process.env.JWT_SECRET_KEY, {
-    expiresIn: '7d',
-  });
-  return token;
-};
 
 userSchema.methods.comparePasswords = async function (
   passwordByUser: string
