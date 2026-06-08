@@ -59,3 +59,30 @@ export const digestEmail = (name: string, count: number) => `
 </body>
 </html>
 `;
+
+export const welcomeEmail = (name: string) => `
+<!DOCTYPE html>
+<html>
+<body style="font-family:sans-serif;background:#0a0a0f;color:#e8e6f0;padding:40px 20px;margin:0">
+  <div style="max-width:480px;margin:0 auto;background:#13121c;border:1px solid #1e1d28;border-radius:12px;padding:32px">
+    <h2 style="color:#fff;margin:0 0 8px">Welcome to DevLink 🎉</h2>
+
+    <p style="color:#9b8ec4;margin:0 0 24px">
+      Hey ${name}, your account is now ready.
+      Start building your developer network, discover other engineers,
+      and grow meaningful professional connections.
+    </p>
+
+    <a href="${process.env.FRONTEND_URL}/login"
+       style="display:inline-block;background:#6d28d9;color:#fff;text-decoration:none;
+              padding:12px 24px;border-radius:8px;font-weight:500">
+      Sign in
+    </a>
+
+    <p style="color:#4a4760;font-size:12px;margin:24px 0 0">
+      Complete your profile to help other developers discover and connect with you.
+    </p>
+  </div>
+</body>
+</html>
+`;

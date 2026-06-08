@@ -1,6 +1,10 @@
 import { Worker } from 'bullmq';
 import sendEmail from '../utils/sendEmail.js';
-import { digestEmail, verificationEmail } from '../utils/emailTemplates.js';
+import {
+  digestEmail,
+  verificationEmail,
+  welcomeEmail,
+} from '../utils/emailTemplates.js';
 
 const connection = {
   host: process.env.REDIS_HOST,
@@ -30,6 +34,16 @@ const worker = new Worker(
           to,
           subject: `You have ${count} new connection request${count > 1 ? 's' : ''} on DevLink`,
           html: digestEmail(firstName, count),
+        });
+        break;
+      }
+
+      case 'sendWelcomeEmail': {
+        const { to, firstName } = job.data;
+        await sendEmail({
+          to,
+          subject: 'Welcome to DevLink 🎉',
+          html: welcomeEmail(firstName),
         });
         break;
       }

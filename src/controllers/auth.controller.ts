@@ -9,8 +9,6 @@ import {
   generateAccessToken,
   hashToken,
 } from '../utils/token.js';
-import { verificationEmail } from '../utils/emailTemplates.js';
-import sendEmail from '../utils/sendEmail.js';
 import { SignupRequest, LoginRequest } from '../types/auth.types.js';
 import { Request, Response } from 'express';
 import {
@@ -20,7 +18,10 @@ import {
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { ApiError } from '../utils/apiError.js';
 import { SendResponse } from '../utils/sendResponse.js';
-import { addVerificationEmailJob } from '../queues/email.queue.js';
+import {
+  addVerificationEmailJob,
+  addWelcomeEmailJob,
+} from '../queues/email.queue.js';
 
 export const signup = asyncHandler(
   async (req: SignupRequest, res: Response): Promise<void> => {
@@ -158,6 +159,8 @@ export const verifyEmail = asyncHandler(
       $set: { emailVerified: true },
       $unset: { emailVerifyToken: '', emailVerifyExpiry: '' },
     });
+
+    await addWelcomeEmailJob(user.emailId, user.firstName);
 
     SendResponse(res, 200, 'Email verified successfully');
   }

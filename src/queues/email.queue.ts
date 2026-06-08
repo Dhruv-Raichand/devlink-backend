@@ -40,3 +40,11 @@ export async function addVerificationEmailJob(
     defaultEmailJobOptions
   );
 }
+
+export async function addWelcomeEmailJob(to: string, firstName: string) {
+  await emailQueue.add(
+    'sendWelcomeEmail',
+    { to, firstName },
+    defaultEmailJobOptions
+  );
+}
