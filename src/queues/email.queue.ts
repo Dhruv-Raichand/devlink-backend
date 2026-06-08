@@ -7,6 +7,16 @@ const connection = {
 
 export const emailQueue = new Queue('emailQueue', { connection });
 
+const defaultEmailJobOptions = {
+  attempts: 3,
+  backoff: {
+    type: 'exponential',
+    delay: 5000,
+  },
+  removeOnComplete: 1000,
+  removeOnFail: 5000,
+};
+
 export async function addDigestJob(
   to: string,
   firstName: string,
@@ -15,14 +25,18 @@ export async function addDigestJob(
   await emailQueue.add(
     'sendDigest',
     { to, firstName, count },
-    {
-      attempts: 3,
-      backoff: {
-        type: 'exponential',
-        delay: 5000,
-      },
-      removeOnComplete: 1000,
-      removeOnFail: 5000,
-    }
+    defaultEmailJobOptions
+  );
+}
+
+export async function addVerificationEmailJob(
+  to: string,
+  firstName: string,
+  verifyToken: string
+) {
+  await emailQueue.add(
+    'sendVerificationEmail',
+    { to, firstName, verifyToken },
+    defaultEmailJobOptions
   );
 }

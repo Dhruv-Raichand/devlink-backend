@@ -20,6 +20,7 @@ import {
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { ApiError } from '../utils/apiError.js';
 import { SendResponse } from '../utils/sendResponse.js';
+import { addVerificationEmailJob } from '../queues/email.queue.js';
 
 export const signup = asyncHandler(
   async (req: SignupRequest, res: Response): Promise<void> => {
@@ -40,14 +41,7 @@ export const signup = asyncHandler(
 
     const signedUser = await user.save();
 
-    await sendEmail({
-      to: user.emailId,
-      subject: 'Verify your DevLink email',
-      html: verificationEmail(
-        user.firstName,
-        `${process.env.FRONTEND_URL}/verify-email?token=${verifyToken}`
-      ),
-    });
+    await addVerificationEmailJob(emailId, firstName, verifyToken);
 
     SendResponse(
       res,
@@ -182,14 +176,7 @@ export const resendVerification = asyncHandler(
       user.emailVerifyExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
       await user.save();
 
-      await sendEmail({
-        to: user.emailId,
-        subject: 'Verify your DevLink email',
-        html: verificationEmail(
-          user.firstName,
-          `${process.env.FRONTEND_URL}/verify-email?token=${verifyToken}`
-        ),
-      });
+      await addVerificationEmailJob(emailId, user.firstName, verifyToken);
     }
 
     SendResponse(
