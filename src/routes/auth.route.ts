@@ -31,6 +31,14 @@ const authLimit = rateLimit({
   },
 });
 
+const resendVerificationLimit = rateLimit({
+  windowMs: 5 * 60 * 1000,
+  max: 3,
+  message: {
+    message: 'Too many verification email request. Please wait a few minutes',
+  },
+});
+
 authRouter.post('/signup', authLimit, signup);
 
 authRouter.post('/login', authLimit, login);
@@ -41,6 +49,10 @@ authRouter.post('/refresh', refresh);
 
 authRouter.get('/verify-email', verifyEmail);
 
-authRouter.post('/resend-verification', resendVerification);
+authRouter.post(
+  '/resend-verification',
+  resendVerificationLimit,
+  resendVerification
+);
 
 export default authRouter;
