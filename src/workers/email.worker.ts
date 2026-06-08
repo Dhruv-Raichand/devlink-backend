@@ -20,10 +20,10 @@ const worker = new Worker(
   {
     connection,
     limiter: {
-      max: 2,
-      duration: 1000,
+      max: 1,
+      duration: 600,
     },
-    concurrency: 5,
+    concurrency: 1,
   }
 );
 
