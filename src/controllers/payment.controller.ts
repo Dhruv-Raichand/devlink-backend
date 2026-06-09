@@ -76,12 +76,22 @@ export const verifyPayment = asyncHandler(
     const { razorpay_order_id, razorpay_payment_id, razorpay_signature } =
       req.body;
 
+    if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+      throw new ApiError(400, 'Missing payment details');
+    }
+
     const expectedSignature = crypto
       .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET as string)
       .update(razorpay_order_id + '|' + razorpay_payment_id)
       .digest('hex');
 
-    if (expectedSignature !== razorpay_signature) {
+    const expected = Buffer.from(expectedSignature, 'hex');
+    const received = Buffer.from(razorpay_signature, 'hex');
+
+    if (
+      expected.length !== received.length ||
+      !crypto.timingSafeEqual(expected, received)
+    ) {
       throw new ApiError(400, 'Invalid signature');
     }
 
