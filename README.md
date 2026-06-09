@@ -34,7 +34,7 @@ Three layers: React client ↔ Express/Socket.io API ↔ MongoDB + AWS.
 
 The API serves both REST (HTTP) and real-time (WebSocket) on the same server. Socket.io maintains an in-memory `onlineUsers` map (`userId → socketId`) that controllers import directly — no message queue needed for targeted push notifications at this scale.
 
-A separate **worker process** runs alongside the API and handles all async jobs: daily email digests and post-payment membership activation. Both processes share a Redis instance via BullMQ.
+A separate **worker process** runs alongside the API and handles all async email jobs. Both processes share a Redis instance via BullMQ.
 
 ---
 
@@ -53,7 +53,7 @@ New users complete a four-step flow: register → verify email (token sent via q
 - **`pairKey` on Connection** — sorted, underscore-joined user ID pair with a unique index. Prevents duplicate bidirectional connections at the DB level, not just application level.
 - **Hashed chat rooms** — SHA-256 of sorted user ID pair. Both participants always derive the same room ID regardless of who opens the chat first.
 - **Messages as subdocuments** — embedded in `Chat` with `timestamps: true` so `createdAt` is automatic on push.
-- **Payments collection** — stores Razorpay order/payment IDs, membership tier, billing cycle, and verification status. Worker activates membership only after webhook signature is verified.
+- **Payments collection** — stores Razorpay order/payment IDs, membership tier, billing cycle, and verification status. Membership is activated inline in the webhook handler after signature verification.
 
 ---
 
@@ -92,7 +92,7 @@ Membership activation is handled synchronously in the Razorpay webhook handler �
 
 **Tiered rate limiting** — two separate limiters: `authLimit` (10 req / 15 min) on `/signup` and `/login` with exact retry-after time in the response body; `resendVerificationLimit` (3 req / 5 min) on `/resend-verification` to prevent email abuse.
 
-**Razorpay webhook security** — signature is verified using `crypto.createHmac` against `RAZORPAY_WEBHOOK_SECRET` before any membership state is mutated. Invalid payloads are rejected with 400 before they touch the database.
+**Razorpay webhook security** — signature is verified using `validateWebhookSignature` against `RAZORPAY_WEBHOOK_SECRET` before any membership state is mutated. Invalid payloads are rejected with 400 before they touch the database.
 
 ---
 
@@ -101,19 +101,19 @@ Membership activation is handled synchronously in the Razorpay webhook handler �
 <details>
 <summary>Auth · Profile</summary>
 
-| Method | Route                          | Notes                                                    |
-| ------ | ------------------------------ | -------------------------------------------------------- |
-| POST   | `/signup`                      | Rate limited. Registers user ans send verification mail. |
-| POST   | `/login`                       | Rate limited. Sets JWT cookie.                           |
-| POST   | `/logout`                      | Clears cookies.                                          |
-| POST   | `/refresh`                     | Refresh Tokens.                                          |
-| GET    | `/verify-email`                | verify email with token.                                 |
-| POST   | `/resend-verfication`          | Rate limited. resend verificaition email.                |
-| GET    | `/profile`                     | Own profile via cookie auth.                             |
-| PATCH  | `/profile/edit`                | Update fields.                                           |
-| PATCH  | `/profile/password`            | Change password.                                         |
-| GET    | `/profile/:userId`             | Safe fields only.                                        |
-| POST   | `/profile/onboarding/complete` | Marks Onboarding completed.                              |
+| Method | Route                          | Notes                                                      |
+| ------ | ------------------------------ | ---------------------------------------------------------- |
+| POST   | `/signup`                      | Rate limited. Registers user and sends verification email. |
+| POST   | `/login`                       | Rate limited. Sets access + refresh token cookies.         |
+| POST   | `/logout`                      | Clears cookies.                                            |
+| POST   | `/refresh`                     | Issues new access token from refresh token.                |
+| GET    | `/verify-email`                | Verifies email with token.                                 |
+| POST   | `/resend-verification`         | Rate limited. Resends verification email.                  |
+| GET    | `/profile`                     | Own profile via cookie auth.                               |
+| PATCH  | `/profile/edit`                | Update fields.                                             |
+| PATCH  | `/profile/password`            | Change password.                                           |
+| GET    | `/profile/:userId`             | Safe fields only.                                          |
+| POST   | `/profile/onboarding/complete` | Marks onboarding as complete.                              |
 
 </details>
 
@@ -139,12 +139,12 @@ Membership activation is handled synchronously in the Razorpay webhook handler �
 <details>
 <summary>Payments · Membership</summary>
 
-| Method | Route              | Notes                                              |
-| ------ | ------------------ | -------------------------------------------------- |
-| POST   | `/payment/order`   | Creates Razorpay order, returns `orderId`.         |
-| POST   | `/payment/verify`  | Verifies signature, enqueues membership job.       |
-| POST   | `/payment/webhook` | Razorpay server-side webhook (signature verified). |
-| GET    | `/payment/status`  | Current membership tier and expiry for auth user.  |
+| Method | Route              | Notes                                                 |
+| ------ | ------------------ | ----------------------------------------------------- |
+| POST   | `/payment/order`   | Creates Razorpay order, returns `orderId`.            |
+| POST   | `/payment/verify`  | Verifies payment signature. Client-side confirmation. |
+| POST   | `/payment/webhook` | Razorpay server-side webhook (signature verified).    |
+| GET    | `/payment/status`  | Current membership tier and expiry for auth user.     |
 
 </details>
 
