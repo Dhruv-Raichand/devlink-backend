@@ -15,8 +15,11 @@ import paymentRouter from './routes/payment.route.js';
 
 import initializeSocket from './utils/socket.js';
 import { errorHandler } from './middlewares/errorHandler.js';
+import { requestLogger } from './middlewares/requestLogger.js';
 
 const app = express();
+
+app.use(requestLogger);
 
 app.set('trust proxy', 1);
 
