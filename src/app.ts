@@ -17,6 +17,8 @@ import initializeSocket from './utils/socket.js';
 import { errorHandler } from './middlewares/errorHandler.js';
 import { requestLogger } from './middlewares/requestLogger.js';
 import { requestId } from './middlewares/requestId.js';
+import { logger } from './logger/logger.js';
+import { Request, Response } from 'express';
 
 const app = express();
 
@@ -46,7 +48,7 @@ app.use('/chat', chatRouter);
 app.use('/skills', skillRouter);
 app.use('/payment', paymentRouter);
 
-app.use((req: any, res: any) => {
+app.use((req: Request, res: Response) => {
   res.status(404).send('Not Found');
 });
 
@@ -64,10 +66,10 @@ const startServer = async () => {
     const PORT = process.env.PORT || 3000;
 
     server.listen(PORT, () => {
-      console.log(`Server listening on port ${PORT}`);
+      logger.info({ port: PORT }, 'Server started');
     });
   } catch (err) {
-    console.error('Failed to start server:', err);
+    logger.fatal({ err }, 'Failed to start server');
     process.exit(1);
   }
 };
