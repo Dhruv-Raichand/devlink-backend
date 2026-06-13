@@ -6,7 +6,7 @@ export const errorHandler = (
   err: unknown,
   req: Request,
   res: Response,
-  next: NextFunction
+  _next: NextFunction
 ) => {
   if (
     typeof err === 'object' &&
@@ -14,6 +14,8 @@ export const errorHandler = (
     'code' in err &&
     err.code === 11000
   ) {
+    logger.warn({ requestId: req.requestId }, 'Duplicate Resouce');
+
     return res.status(409).json({
       success: false,
       message: 'Resource already exists',
@@ -21,19 +23,22 @@ export const errorHandler = (
   }
 
   if (err instanceof ApiError) {
+    logger.warn(
+      {
+        requestId: req.requestId,
+        statusCode: err.statusCode,
+        message: err.message,
+      },
+      'API error'
+    );
+
     return res.status(err.statusCode).json({
       success: false,
       message: err.message,
     });
   }
 
-  logger.error(
-    {
-      requestId: req.requestId,
-      err,
-    },
-    'Unhandled error'
-  );
+  logger.error({ requestId: req.requestId, err }, 'Unhandled error');
 
   res.status(500).json({
     success: false,
