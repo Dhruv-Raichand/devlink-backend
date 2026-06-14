@@ -16,6 +16,7 @@ import { SendResponse } from '../utils/sendResponse.js';
 export const createPayment = asyncHandler(
   async (req: Request, res: Response) => {
     if (!req.user) {
+      req.log.warn('Payment creation attempted without authentication');
       throw new ApiError(401, 'Unauthorized');
     }
 
@@ -60,12 +61,15 @@ export const createPayment = asyncHandler(
 
     await payment.save();
 
-    const { id, amount, currency } = order;
+    req.log.info(
+      { userId: req.user._id, orderId: order.id, amount: order.amount },
+      'Payment order created'
+    );
 
     SendResponse(res, 201, 'Payment created successfully', {
-      orderId: id,
-      amount,
-      currency,
+      orderId: order.id,
+      amount: order.amount,
+      currency: order.currency,
       keyId: process.env.RAZORPAY_KEY_ID,
     });
   }
@@ -92,6 +96,10 @@ export const verifyPayment = asyncHandler(
       expected.length !== received.length ||
       !crypto.timingSafeEqual(expected, received)
     ) {
+      req.log.warn(
+        { orderId: razorpay_order_id, paymentId: razorpay_payment_id },
+        'Payment signature verification failed'
+      );
       throw new ApiError(400, 'Invalid signature');
     }
 
@@ -105,13 +113,18 @@ export const verifyPayment = asyncHandler(
       throw new ApiError(404, 'Payment not found');
     }
 
+    req.log.info(
+      { orderId: razorpay_order_id, paymentId: razorpay_payment_id },
+      'Payment verified successfully'
+    );
+
     SendResponse(res, 200, 'Payment verified successfully');
   }
 );
 
 export const handleWebhook = asyncHandler(
   async (req: Request, res: Response) => {
-    console.log('Webhook hit');
+    req.log.info('Razorpay webhook received');
 
     const rawBody = req.body.toString();
     const isWebhookValid = validateWebhookSignature(
@@ -156,13 +169,24 @@ export const handleWebhook = asyncHandler(
         membershipExpiry: expiryDate,
       });
 
-      console.log('Payment captured, user upgraded:', payment.userId);
+      req.log.info(
+        {
+          userId: payment.userId,
+          orderId: payment.orderId,
+          paymentId: payment.paymentId,
+          membershipType: payment.membershipType,
+        },
+        'Payment captured and membership upgraded'
+      );
     }
 
     if (event.event === 'payment.failed') {
       payment.status = 'failed';
       await payment.save();
-      console.log('Payment failed for order:', paymentDetails.order_id);
+      req.log.warn(
+        { orderId: paymentDetails.order_id, paymentId: paymentDetails.id },
+        'Payment failed'
+      );
     }
 
     SendResponse(res, 200, 'Webhook processed successfully');
