@@ -1,6 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
 import { ApiError } from '../utils/apiError.js';
-import { logger } from '../logger/logger.js';
 
 export const errorHandler = (
   err: unknown,
@@ -8,13 +7,13 @@ export const errorHandler = (
   res: Response,
   _next: NextFunction
 ) => {
-  if (
-    typeof err === 'object' &&
-    err !== null &&
-    'code' in err &&
-    err.code === 11000
-  ) {
-    logger.warn({ requestId: req.requestId }, 'Duplicate Resouce');
+  const error = err as any;
+
+  if (error?.code === 11000) {
+    req.log.warn(
+      { code: error.code, field: Object.keys(error.keyValue)[0] },
+      'Duplicate Resource'
+    );
 
     return res.status(409).json({
       success: false,
@@ -22,23 +21,19 @@ export const errorHandler = (
     });
   }
 
-  if (err instanceof ApiError) {
-    logger.warn(
-      {
-        requestId: req.requestId,
-        statusCode: err.statusCode,
-        message: err.message,
-      },
+  if (error instanceof ApiError) {
+    req.log.warn(
+      { statusCode: error.statusCode, message: error.message },
       'API error'
     );
 
-    return res.status(err.statusCode).json({
+    return res.status(error.statusCode).json({
       success: false,
-      message: err.message,
+      message: error.message,
     });
   }
 
-  logger.error({ requestId: req.requestId, err }, 'Unhandled error');
+  req.log.error({ err: error }, 'Unhandled error');
 
   res.status(500).json({
     success: false,

@@ -5,23 +5,25 @@ import { Request } from 'express';
 export const requestLogger = pinoHttp({
   logger,
 
-  customProps(req, res) {
+  customProps(req) {
     const request = req as Request;
     return {
       requestId: request.requestId,
-      method: request.method,
-      url: request.url,
-      statusCode: res.statusCode,
     };
   },
 
   serializers: {
     req(req) {
-      return undefined;
+      return {
+        method: req.method,
+        url: req.url,
+      };
     },
 
     res(res) {
-      return undefined;
+      return {
+        statusCode: res.statusCode,
+      };
     },
   },
 });

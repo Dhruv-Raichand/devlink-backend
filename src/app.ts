@@ -49,6 +49,7 @@ app.use('/skills', skillRouter);
 app.use('/payment', paymentRouter);
 
 app.use((req: Request, res: Response) => {
+  req.log.warn({ method: req.method, url: req.url }, 'Route not found');
   res.status(404).send('Not Found');
 });
 
