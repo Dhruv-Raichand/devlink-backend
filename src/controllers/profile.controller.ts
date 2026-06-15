@@ -12,7 +12,11 @@ import { SendResponse } from '../utils/sendResponse.js';
 export const getProfile = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
     const user = req.user;
-
+    if (!user) {
+      req.log.warn('Unauthrized access');
+      throw new ApiError(401, 'Unauthorized');
+    }
+    req.log.info({ userId: user._id }, 'Profile retrieved');
     SendResponse(
       res,
       200,
@@ -24,13 +28,15 @@ export const getProfile = asyncHandler(
 
 export const editProfile = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
-    if (!validateUserEdit(req.body)) {
-      throw new ApiError(400, 'Invalid update request');
-    }
-
     let loggedInUser = req.user;
     if (!loggedInUser) {
+      req.log.warn('Unauthrized access');
       throw new ApiError(401, 'Unauthorized');
+    }
+
+    if (!validateUserEdit(req.body)) {
+      req.log.warn({ requestBody: req.body }, 'Invalid req.body');
+      throw new ApiError(400, 'Invalid update request');
     }
 
     delete req.body.password;
@@ -38,7 +44,8 @@ export const editProfile = asyncHandler(
     Object.assign(loggedInUser, req.body);
 
     await loggedInUser.save();
-    const firstName = loggedInUser.firstName;
+
+    req.log.info({ userId: loggedInUser._id }, 'Profile updated successfully');
 
     SendResponse(
       res,
@@ -52,6 +59,13 @@ export const editProfile = asyncHandler(
 export const changePassword = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
     const { password, newPassword } = req.body;
+
+    const loggedInUser = req.user;
+    if (!loggedInUser) {
+      req.log.warn('Unauthorized password change attempt');
+      throw new ApiError(401, 'Unauthorized');
+    }
+
     if (!password || !newPassword) {
       throw new ApiError(400, 'Current password and new password are required');
     } else if (password === newPassword) {
@@ -63,17 +77,17 @@ export const changePassword = asyncHandler(
       throw new ApiError(400, 'New password is weak');
     }
 
-    const loggedInUser = req.user;
-    if (!loggedInUser) {
-      throw new ApiError(401, 'Unauthorized');
-    }
-
     const isCorrect = await bcrypt.compare(password, loggedInUser.password);
     if (isCorrect) {
       const newPasswordHash = await bcrypt.hash(newPassword, 10);
       loggedInUser.password = newPasswordHash;
 
       await loggedInUser.save();
+
+      req.log.info(
+        { userId: loggedInUser._id },
+        'Password updated successfully'
+      );
 
       SendResponse(
         res,
@@ -82,6 +96,7 @@ export const changePassword = asyncHandler(
         sanitizeUser(loggedInUser)
       );
     } else {
+      req.log.warn({ userId: loggedInUser._id }, 'Incorrect current password');
       throw new ApiError(400, 'Current password is incorrect');
     }
   }
@@ -92,6 +107,7 @@ export const viewUserProfile = asyncHandler(
     const { userId } = req.params;
 
     if (typeof userId !== 'string' || !validator.isMongoId(userId)) {
+      req.log.warn({ userId }, 'Invalid request parameter');
       throw new ApiError(400, 'Invalid userId');
     }
 
@@ -100,8 +116,11 @@ export const viewUserProfile = asyncHandler(
     );
 
     if (!user) {
+      req.log.warn({ userId }, 'User not found in database');
       throw new ApiError(404, 'User not found');
     }
+
+    req.log.info({ userId }, 'Fetching user profile');
 
     SendResponse(
       res,
@@ -115,6 +134,7 @@ export const viewUserProfile = asyncHandler(
 export const completeOnboarding = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
     if (!req.user) {
+      req.log.warn('Unauthorized request');
       throw new ApiError(401, 'Unauthorized');
     }
     const user = await User.findByIdAndUpdate(
@@ -122,6 +142,13 @@ export const completeOnboarding = asyncHandler(
       { $set: { onboardingComplete: true } },
       { new: true }
     );
+
+    if (!user) {
+      req.log.warn({ userId: req.user._id }, 'User not found in database');
+      throw new ApiError(404, 'User not found');
+    }
+
+    req.log.info({ userId: user._id }, 'Onboarding completed successfully');
 
     SendResponse(
       res,
