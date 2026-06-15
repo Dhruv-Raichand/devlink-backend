@@ -3,6 +3,7 @@ export const sanitizeUser = (user: any) => {
 
   delete userObj.password;
   delete userObj.__v;
+  delete userObj.refreshToken;
 
   return userObj;
 };
