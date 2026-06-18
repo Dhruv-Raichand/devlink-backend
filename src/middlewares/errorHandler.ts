@@ -7,33 +7,55 @@ export const errorHandler = (
   res: Response,
   _next: NextFunction
 ) => {
-  const error = err as any;
+  if (err instanceof ApiError) {
+    if (
+      typeof err === 'object' &&
+      err !== null &&
+      'code' in err &&
+      (err as { code: number }).code === 11000
+    ) {
+      const keyValue = (err as { keyValue?: Record<string, undefined> })
+        .keyValue;
+      req.log.warn(
+        {
+          code: err.code,
+          field: keyValue ? Object.keys(keyValue)[0] : 'unknown',
+        },
+        'Duplicate Resource'
+      );
 
-  if (error?.code === 11000) {
-    req.log.warn(
-      { code: error.code, field: Object.keys(error.keyValue)[0] },
-      'Duplicate Resource'
-    );
+      return res.status(409).json({
+        success: false,
+        message: 'Resource already exists',
+      });
+    }
 
-    return res.status(409).json({
-      success: false,
-      message: 'Resource already exists',
-    });
-  }
+    const level =
+      err.statusCode >= 500
+        ? 'error'
+        : err.statusCode === 401 ||
+            err.statusCode === 403 ||
+            err.statusCode === 429
+          ? 'warn'
+          : 'info';
 
-  if (error instanceof ApiError) {
-    req.log.warn(
-      { statusCode: error.statusCode, message: error.message },
+    req.log[level](
+      {
+        statusCode: err.statusCode,
+        message: err.message,
+        userId: req.user?._id,
+        path: req.originalUrl,
+      },
       'API error'
     );
 
-    return res.status(error.statusCode).json({
+    return res.status(err.statusCode).json({
       success: false,
-      message: error.message,
+      message: err.message,
     });
   }
-
-  req.log.error({ err: error }, 'Unhandled error');
+  const stack = err instanceof Error ? err.stack : 'undefined';
+  req.log.error({ err, stack }, 'Unhandled error');
 
   res.status(500).json({
     success: false,
