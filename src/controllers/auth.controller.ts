@@ -2,9 +2,8 @@ import User from '../models/user.js';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 import { validate } from '../utils/validate.js';
-import { sanitizeUser } from '../utils/helper.js';
+import { assignVerificationToken, sanitizeUser } from '../utils/helper.js';
 import {
-  generateToken,
   generateRefreshToken,
   generateAccessToken,
   hashToken,
@@ -29,16 +28,15 @@ export const signup = asyncHandler(
     validate(req.body);
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    const verifyToken = generateToken();
 
     const user = new User({
       firstName,
       lastName,
       emailId,
       password: hashedPassword,
-      emailVerifyToken: hashToken(verifyToken),
-      emailVerifyExpiry: new Date(Date.now() + 24 * 60 * 60 * 1000),
     });
+
+    const verifyToken = assignVerificationToken(user);
 
     const signedUser = await user.save();
 
@@ -101,6 +99,7 @@ export const refresh = asyncHandler(async (req: Request, res: Response) => {
 
   const refreshTokenSecret = process.env.REFRESH_TOKEN_SECRET_KEY as string;
   if (!refreshTokenSecret) {
+    req.log.error('Refresh token secret not configured');
     throw new ApiError(500, 'Server configuration error');
   }
 
@@ -157,6 +156,7 @@ export const verifyEmail = asyncHandler(
     const { token } = req.query;
 
     if (typeof token !== 'string') {
+      req.log.warn('Invalid email verification token format');
       throw new ApiError(400, 'Invalid verification link');
     }
 
@@ -194,10 +194,7 @@ export const resendVerification = asyncHandler(
     const user = await User.findOne({ emailId });
 
     if (user && !user.emailVerified) {
-      const verifyToken = generateToken();
-
-      user.emailVerifyToken = hashToken(verifyToken);
-      user.emailVerifyExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
+      const verifyToken = assignVerificationToken(user);
       await user.save();
 
       await addVerificationEmailJob(emailId, user.firstName, verifyToken);
