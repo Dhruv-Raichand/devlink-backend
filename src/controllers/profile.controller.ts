@@ -67,13 +67,16 @@ export const changePassword = asyncHandler(
     }
 
     if (!password || !newPassword) {
+      req.log.warn({ userId: loggedInUser._id }, 'Password change missing fields');
       throw new ApiError(400, 'Current password and new password are required');
     } else if (password === newPassword) {
+      req.log.warn({ userId: loggedInUser._id }, 'New password same as current');
       throw new ApiError(
         400,
         'New password should not be the same as the current password'
       );
     } else if (!validator.isStrongPassword(newPassword)) {
+      req.log.warn({ userId: loggedInUser._id }, 'New password too weak');
       throw new ApiError(400, 'New password is weak');
     }
 

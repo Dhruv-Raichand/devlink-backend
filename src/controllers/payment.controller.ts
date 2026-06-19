@@ -32,6 +32,10 @@ export const createPayment = asyncHandler(
       !isValidMembershipType(membershipType) ||
       !isValidBillingCycle(billingCycle)
     ) {
+      req.log.warn(
+        { userId: req.user._id, membershipType, billingCycle },
+        'Invalid payment input'
+      );
       throw new ApiError(400, 'Invalid input');
     }
 
@@ -81,6 +85,7 @@ export const verifyPayment = asyncHandler(
       req.body;
 
     if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+      req.log.warn('Payment verification missing required details');
       throw new ApiError(400, 'Missing payment details');
     }
 
@@ -110,6 +115,7 @@ export const verifyPayment = asyncHandler(
     );
 
     if (!payment) {
+      req.log.warn({ orderId: razorpay_order_id }, 'Payment not found');
       throw new ApiError(404, 'Payment not found');
     }
 
@@ -134,6 +140,7 @@ export const handleWebhook = asyncHandler(
     );
 
     if (!isWebhookValid) {
+      req.log.warn('Invalid Razorpay webhook signature');
       throw new ApiError(400, 'Invalid webhook signature');
     }
 
@@ -144,11 +151,20 @@ export const handleWebhook = asyncHandler(
       orderId: paymentDetails.order_id,
     });
     if (!payment) {
+      req.log.warn(
+        { orderId: paymentDetails.order_id },
+        'Webhook payment not found'
+      );
       throw new ApiError(404, 'Payment not found');
     }
 
     if (payment.status === 'captured') {
-      return SendResponse(res, 200, 'Payment already processed');
+      req.log.info(
+        { orderId: payment.orderId, paymentId: payment.paymentId },
+        'Webhook skipped: payment already processed'
+      );
+      SendResponse(res, 200, 'Payment already processed');
+      return;
     }
 
     if (event.event === 'payment.captured') {
@@ -196,6 +212,7 @@ export const handleWebhook = asyncHandler(
 export const getPaymentStatus = asyncHandler(
   async (req: Request, res: Response) => {
     if (!req.user) {
+      req.log.warn('Get payment status failed: unauthorized');
       throw new ApiError(401, 'Unauthorized');
     }
 
@@ -205,19 +222,37 @@ export const getPaymentStatus = asyncHandler(
     });
 
     if (!payment) {
+      req.log.warn(
+        { userId: req.user._id, orderId: req.params.orderId },
+        'Payment not found'
+      );
       throw new ApiError(404, 'Payment not found');
     }
 
     if (payment.status === 'captured') {
       const user = await User.findById(req.user._id).select('-password');
 
-      return SendResponse(
-        res,
-        200,
-        'Payment status retrieved successfully',
-        user
+      req.log.info(
+        {
+          userId: req.user._id,
+          orderId: payment.orderId,
+          status: payment.status,
+        },
+        'Payment status retrieved'
       );
+
+      SendResponse(res, 200, 'Payment status retrieved successfully', user);
+      return;
     }
+
+    req.log.info(
+      {
+        userId: req.user._id,
+        orderId: payment.orderId,
+        status: payment.status,
+      },
+      'Payment status retrieved'
+    );
 
     SendResponse(res, 200, 'Payment status retrieved successfully');
   }
