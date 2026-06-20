@@ -28,6 +28,11 @@ export const getReceivedRequests = asyncHandler(
       fromUserId,
     }));
 
+    req.log.debug(
+      { userId: loggedInUser._id, count: received.length },
+      'Received requests fetched'
+    );
+
     SendResponse(res, 200, 'Received requests fetched successfully', received);
   }
 );
@@ -60,6 +65,11 @@ export const getConnections = asyncHandler(
         ? row.fromUserId
         : row.toUserId;
     });
+
+    req.log.debug(
+      { userId: loggedInUser._id, count: connectionUsers.length },
+      'Connections fetched'
+    );
 
     SendResponse(res, 200, 'Connections fetched successfully', connectionUsers);
   }
@@ -121,6 +131,17 @@ export const getFeed = asyncHandler(
       User.countDocuments(query),
     ]);
 
+    req.log.debug(
+      {
+        userId: loggedInUser._id,
+        page,
+        limit,
+        count: users.length,
+        totalUsers: totalCount,
+      },
+      'Feed fetched'
+    );
+
     SendResponse(res, 200, 'Feed fetched successfully', {
       items: users,
       pagination: {
@@ -153,6 +174,11 @@ export const getSentRequests = asyncHandler(
       _id,
       toUserId,
     }));
+
+    req.log.debug(
+      { userId: loggedInUser._id, count: sent.length },
+      'Sent requests fetched'
+    );
 
     SendResponse(res, 200, 'Sent requests fetched successfully', sent);
   }

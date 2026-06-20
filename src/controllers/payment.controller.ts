@@ -16,6 +16,7 @@ import { SendResponse } from '../utils/sendResponse.js';
 export const createPayment = asyncHandler(
   async (req: Request, res: Response) => {
     if (!req.user) {
+      req.log.warn('Payment creation attempted without authentication');
       throw new ApiError(401, 'Unauthorized');
     }
 
@@ -31,6 +32,10 @@ export const createPayment = asyncHandler(
       !isValidMembershipType(membershipType) ||
       !isValidBillingCycle(billingCycle)
     ) {
+      req.log.warn(
+        { userId: req.user._id, membershipType, billingCycle },
+        'Invalid payment input'
+      );
       throw new ApiError(400, 'Invalid input');
     }
 
@@ -60,12 +65,15 @@ export const createPayment = asyncHandler(
 
     await payment.save();
 
-    const { id, amount, currency } = order;
+    req.log.info(
+      { userId: req.user._id, orderId: order.id, amount: order.amount },
+      'Payment order created'
+    );
 
     SendResponse(res, 201, 'Payment created successfully', {
-      orderId: id,
-      amount,
-      currency,
+      orderId: order.id,
+      amount: order.amount,
+      currency: order.currency,
       keyId: process.env.RAZORPAY_KEY_ID,
     });
   }
@@ -77,6 +85,7 @@ export const verifyPayment = asyncHandler(
       req.body;
 
     if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+      req.log.warn('Payment verification missing required details');
       throw new ApiError(400, 'Missing payment details');
     }
 
@@ -92,6 +101,10 @@ export const verifyPayment = asyncHandler(
       expected.length !== received.length ||
       !crypto.timingSafeEqual(expected, received)
     ) {
+      req.log.warn(
+        { orderId: razorpay_order_id, paymentId: razorpay_payment_id },
+        'Payment signature verification failed'
+      );
       throw new ApiError(400, 'Invalid signature');
     }
 
@@ -102,8 +115,14 @@ export const verifyPayment = asyncHandler(
     );
 
     if (!payment) {
+      req.log.warn({ orderId: razorpay_order_id }, 'Payment not found');
       throw new ApiError(404, 'Payment not found');
     }
+
+    req.log.info(
+      { orderId: razorpay_order_id, paymentId: razorpay_payment_id },
+      'Payment verified successfully'
+    );
 
     SendResponse(res, 200, 'Payment verified successfully');
   }
@@ -111,7 +130,7 @@ export const verifyPayment = asyncHandler(
 
 export const handleWebhook = asyncHandler(
   async (req: Request, res: Response) => {
-    console.log('Webhook hit');
+    req.log.info('Razorpay webhook received');
 
     const rawBody = req.body.toString();
     const isWebhookValid = validateWebhookSignature(
@@ -121,6 +140,7 @@ export const handleWebhook = asyncHandler(
     );
 
     if (!isWebhookValid) {
+      req.log.warn('Invalid Razorpay webhook signature');
       throw new ApiError(400, 'Invalid webhook signature');
     }
 
@@ -131,11 +151,20 @@ export const handleWebhook = asyncHandler(
       orderId: paymentDetails.order_id,
     });
     if (!payment) {
+      req.log.warn(
+        { orderId: paymentDetails.order_id },
+        'Webhook payment not found'
+      );
       throw new ApiError(404, 'Payment not found');
     }
 
     if (payment.status === 'captured') {
-      return SendResponse(res, 200, 'Payment already processed');
+      req.log.info(
+        { orderId: payment.orderId, paymentId: payment.paymentId },
+        'Webhook skipped: payment already processed'
+      );
+      SendResponse(res, 200, 'Payment already processed');
+      return;
     }
 
     if (event.event === 'payment.captured') {
@@ -156,13 +185,24 @@ export const handleWebhook = asyncHandler(
         membershipExpiry: expiryDate,
       });
 
-      console.log('Payment captured, user upgraded:', payment.userId);
+      req.log.info(
+        {
+          userId: payment.userId,
+          orderId: payment.orderId,
+          paymentId: payment.paymentId,
+          membershipType: payment.membershipType,
+        },
+        'Payment captured and membership upgraded'
+      );
     }
 
     if (event.event === 'payment.failed') {
       payment.status = 'failed';
       await payment.save();
-      console.log('Payment failed for order:', paymentDetails.order_id);
+      req.log.warn(
+        { orderId: paymentDetails.order_id, paymentId: paymentDetails.id },
+        'Payment failed'
+      );
     }
 
     SendResponse(res, 200, 'Webhook processed successfully');
@@ -172,6 +212,7 @@ export const handleWebhook = asyncHandler(
 export const getPaymentStatus = asyncHandler(
   async (req: Request, res: Response) => {
     if (!req.user) {
+      req.log.warn('Get payment status failed: unauthorized');
       throw new ApiError(401, 'Unauthorized');
     }
 
@@ -181,19 +222,37 @@ export const getPaymentStatus = asyncHandler(
     });
 
     if (!payment) {
+      req.log.warn(
+        { userId: req.user._id, orderId: req.params.orderId },
+        'Payment not found'
+      );
       throw new ApiError(404, 'Payment not found');
     }
 
     if (payment.status === 'captured') {
       const user = await User.findById(req.user._id).select('-password');
 
-      return SendResponse(
-        res,
-        200,
-        'Payment status retrieved successfully',
-        user
+      req.log.info(
+        {
+          userId: req.user._id,
+          orderId: payment.orderId,
+          status: payment.status,
+        },
+        'Payment status retrieved'
       );
+
+      SendResponse(res, 200, 'Payment status retrieved successfully', user);
+      return;
     }
+
+    req.log.info(
+      {
+        userId: req.user._id,
+        orderId: payment.orderId,
+        status: payment.status,
+      },
+      'Payment status retrieved'
+    );
 
     SendResponse(res, 200, 'Payment status retrieved successfully');
   }

@@ -10,6 +10,7 @@ export const recentChat = asyncHandler(
     const user = req.user;
 
     if (!user) {
+      req.log.warn('Recent chats requested without authenticated user');
       throw new ApiError(401, 'Unauthorized');
     }
 
@@ -45,6 +46,11 @@ export const recentChat = asyncHandler(
       })
       .filter(Boolean);
 
+    req.log.info(
+      { userId: user._id, count: data.length },
+      'Recent chats retrieved'
+    );
+
     SendResponse(res, 200, 'Recent chats retrieved successfully', data);
   }
 );
@@ -55,6 +61,7 @@ export const chatWithUser = asyncHandler(
     const user = req.user;
 
     if (!user) {
+      req.log.warn('Chat request without authenticated user');
       throw new ApiError(401, 'Unauthorized');
     }
 
@@ -66,12 +73,15 @@ export const chatWithUser = asyncHandler(
     });
 
     if (!chat) {
+      req.log.info({ userId: user._id, targetUserId }, 'Creating new chat');
       chat = new Chat({
         participants: [user._id, targetUserId],
         messages: [],
       });
       await chat.save();
     }
+
+    req.log.info({ chatId: chat._id, userId: user._id }, 'Chat retrieved');
 
     SendResponse(res, 200, 'Chat retrieved successfully', chat);
   }

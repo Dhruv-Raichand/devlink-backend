@@ -2,9 +2,8 @@ import User from '../models/user.js';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 import { validate } from '../utils/validate.js';
-import { sanitizeUser } from '../utils/helper.js';
+import { assignVerificationToken, sanitizeUser } from '../utils/helper.js';
 import {
-  generateToken,
   generateRefreshToken,
   generateAccessToken,
   hashToken,
@@ -29,20 +28,21 @@ export const signup = asyncHandler(
     validate(req.body);
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    const verifyToken = generateToken();
 
     const user = new User({
       firstName,
       lastName,
       emailId,
       password: hashedPassword,
-      emailVerifyToken: hashToken(verifyToken),
-      emailVerifyExpiry: new Date(Date.now() + 24 * 60 * 60 * 1000),
     });
+
+    const verifyToken = assignVerificationToken(user);
 
     const signedUser = await user.save();
 
     await addVerificationEmailJob(emailId, firstName, verifyToken);
+
+    req.log.info({ userId: signedUser._id, emailId }, 'User registered');
 
     SendResponse(
       res,
@@ -58,15 +58,18 @@ export const login = asyncHandler(
     const { emailId, password } = req.body;
     const user = await User.findOne({ emailId });
     if (!user) {
+      req.log.warn({ emailId, reason: 'user_not_found' }, 'Login failed');
       throw new ApiError(400, 'Invalid Credentials');
     }
 
     if (!user.emailVerified) {
+      req.log.warn({ userId: user._id }, 'Login blocked: email not verified');
       throw new ApiError(403, 'Please verify your email before logging in');
     }
 
     const isCorrect = await user.comparePasswords(password);
     if (!isCorrect) {
+      req.log.warn({ emailId, reason: 'invalid_password' }, 'Login failed');
       throw new ApiError(400, 'Invalid Credentials');
     }
 
@@ -80,6 +83,8 @@ export const login = asyncHandler(
     res.cookie('accessToken', accessToken, ACCESS_COOKIE_OPTIONS);
     res.cookie('refreshToken', refreshToken, REFRESH_COOKIE_OPTIONS);
 
+    req.log.info({ userId: user._id }, 'User logged in');
+
     SendResponse(res, 200, 'Login Successful', sanitizeUser(user));
   }
 );
@@ -88,11 +93,13 @@ export const refresh = asyncHandler(async (req: Request, res: Response) => {
   const refreshToken = req.cookies.refreshToken;
 
   if (!refreshToken) {
+    req.log.warn('Missing refresh token');
     throw new ApiError(401, 'Refresh token missing');
   }
 
   const refreshTokenSecret = process.env.REFRESH_TOKEN_SECRET_KEY as string;
   if (!refreshTokenSecret) {
+    req.log.error('Refresh token secret not configured');
     throw new ApiError(500, 'Server configuration error');
   }
 
@@ -103,12 +110,14 @@ export const refresh = asyncHandler(async (req: Request, res: Response) => {
       userId: string;
     };
   } catch {
+    req.log.warn('Refresh token verification failed');
     throw new ApiError(401, 'Invalid refresh token');
   }
 
   const user = await User.findById(payload.userId);
 
   if (!user || user.refreshToken !== hashToken(refreshToken)) {
+    req.log.warn({ userId: payload.userId }, 'Refresh token mismatch');
     throw new ApiError(401, 'Invalid refresh token');
   }
 
@@ -120,6 +129,8 @@ export const refresh = asyncHandler(async (req: Request, res: Response) => {
 
   res.cookie('accessToken', accessToken, ACCESS_COOKIE_OPTIONS);
   res.cookie('refreshToken', newRefreshToken, REFRESH_COOKIE_OPTIONS);
+
+  req.log.info({ userId: user._id }, 'Access token refreshed');
 
   SendResponse(res, 200, 'Token refreshed');
 });
@@ -134,6 +145,8 @@ export const logout = asyncHandler(
     res.clearCookie('refreshToken', { path: REFRESH_COOKIE_OPTIONS.path });
     res.clearCookie('accessToken', { path: ACCESS_COOKIE_OPTIONS.path });
 
+    req.log.info({ userId: req.user?._id }, 'User logged out');
+
     SendResponse(res, 200, 'Logout successful');
   }
 );
@@ -143,6 +156,7 @@ export const verifyEmail = asyncHandler(
     const { token } = req.query;
 
     if (typeof token !== 'string') {
+      req.log.warn('Invalid email verification token format');
       throw new ApiError(400, 'Invalid verification link');
     }
 
@@ -152,6 +166,7 @@ export const verifyEmail = asyncHandler(
     });
 
     if (!user) {
+      req.log.warn('Invalid email verification token');
       throw new ApiError(400, 'Invalid or expired verification link');
     }
 
@@ -160,7 +175,13 @@ export const verifyEmail = asyncHandler(
       $unset: { emailVerifyToken: '', emailVerifyExpiry: '' },
     });
 
-    await addWelcomeEmailJob(user.emailId, user.firstName);
+    req.log.info({ userId: user._id }, 'Email verified');
+
+    try {
+      await addWelcomeEmailJob(user.emailId, user.firstName);
+    } catch (err) {
+      req.log.error({ userId: user._id, err }, 'Failed to queue welcome email');
+    }
 
     SendResponse(res, 200, 'Email verified successfully');
   }
@@ -173,13 +194,12 @@ export const resendVerification = asyncHandler(
     const user = await User.findOne({ emailId });
 
     if (user && !user.emailVerified) {
-      const verifyToken = generateToken();
-
-      user.emailVerifyToken = hashToken(verifyToken);
-      user.emailVerifyExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
+      const verifyToken = assignVerificationToken(user);
       await user.save();
 
       await addVerificationEmailJob(emailId, user.firstName, verifyToken);
+
+      req.log.info({ emailId }, 'Verification email resent');
     }
 
     SendResponse(
