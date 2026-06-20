@@ -13,7 +13,7 @@ export const getProfile = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
     const user = req.user;
     if (!user) {
-      req.log.warn('Unauthrized access');
+      req.log.warn('Unauthorized access');
       throw new ApiError(401, 'Unauthorized');
     }
     req.log.info({ userId: user._id }, 'Profile retrieved');
@@ -30,7 +30,7 @@ export const editProfile = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
     let loggedInUser = req.user;
     if (!loggedInUser) {
-      req.log.warn('Unauthrized access');
+      req.log.warn('Unauthorized access');
       throw new ApiError(401, 'Unauthorized');
     }
 
@@ -67,10 +67,16 @@ export const changePassword = asyncHandler(
     }
 
     if (!password || !newPassword) {
-      req.log.warn({ userId: loggedInUser._id }, 'Password change missing fields');
+      req.log.warn(
+        { userId: loggedInUser._id },
+        'Password change missing fields'
+      );
       throw new ApiError(400, 'Current password and new password are required');
     } else if (password === newPassword) {
-      req.log.warn({ userId: loggedInUser._id }, 'New password same as current');
+      req.log.warn(
+        { userId: loggedInUser._id },
+        'New password same as current'
+      );
       throw new ApiError(
         400,
         'New password should not be the same as the current password'

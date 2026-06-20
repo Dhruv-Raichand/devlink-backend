@@ -7,29 +7,28 @@ export const errorHandler = (
   res: Response,
   _next: NextFunction
 ) => {
+  if (
+    typeof err === 'object' &&
+    err !== null &&
+    'code' in err &&
+    (err as { code: number }).code === 11000
+  ) {
+    const keyValue = (err as { keyValue?: Record<string, undefined> }).keyValue;
+    req.log.warn(
+      {
+        code: err.code,
+        field: keyValue ? Object.keys(keyValue)[0] : 'unknown',
+      },
+      'Duplicate Resource'
+    );
+
+    return res.status(409).json({
+      success: false,
+      message: 'Resource already exists',
+    });
+  }
+
   if (err instanceof ApiError) {
-    if (
-      typeof err === 'object' &&
-      err !== null &&
-      'code' in err &&
-      (err as { code: number }).code === 11000
-    ) {
-      const keyValue = (err as { keyValue?: Record<string, undefined> })
-        .keyValue;
-      req.log.warn(
-        {
-          code: err.code,
-          field: keyValue ? Object.keys(keyValue)[0] : 'unknown',
-        },
-        'Duplicate Resource'
-      );
-
-      return res.status(409).json({
-        success: false,
-        message: 'Resource already exists',
-      });
-    }
-
     const level =
       err.statusCode >= 500
         ? 'error'
@@ -54,7 +53,7 @@ export const errorHandler = (
       message: err.message,
     });
   }
-  const stack = err instanceof Error ? err.stack : 'undefined';
+  const stack = err instanceof Error ? err.stack : undefined;
   req.log.error({ err, stack }, 'Unhandled error');
 
   res.status(500).json({

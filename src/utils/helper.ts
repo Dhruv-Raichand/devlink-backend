@@ -7,6 +7,7 @@ export const sanitizeUser = (user: UserDocument) => {
     refreshToken,
     emailVerifyToken,
     emailVerifyExpiry,
+    __v,
     ...safeUser
   } = user.toObject();
 
