@@ -1,5 +1,6 @@
 import { Worker } from 'bullmq';
 import sendEmail from '../utils/sendEmail.js';
+import { logger } from '../logger/logger.js';
 import {
   digestEmail,
   verificationEmail,
@@ -62,15 +63,14 @@ const worker = new Worker(
   }
 );
 
-worker.on('completed', (job) => {
-  console.log(`Job ${job.id} completed`);
-});
+worker.on('completed', (job) =>
+  logger.info({ jobId: job.id }, 'Job completed')
+);
 
 worker.on('failed', (job, err) => {
   if (!job) {
-    console.error('Unknown job failed:', err.message);
+    logger.error({ err }, 'Unknown job failed');
     return;
   }
-
-  console.error(`Job ${job.id} failed: ${err.message}`);
+  logger.error({ jobId: job.id, err }, 'Job failed');
 });

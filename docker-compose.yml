@@ -13,6 +13,11 @@ services:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
     restart: always
+    logging: 
+      driver: 'json-file'
+      options:
+        max-size: '10m'
+        max-file: '5'
 
   worker:
     build: .
@@ -27,6 +32,11 @@ services:
       - REDIS_PORT=6379
     command: npm run worker
     restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
 
   redis:
     image: redis:7-alpine
@@ -36,6 +46,11 @@ services:
     volumes:
       - redis_data:/data
     restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
 
 volumes:
   redis_data:
