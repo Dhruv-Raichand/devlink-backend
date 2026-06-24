@@ -48,6 +48,14 @@ app.use('/chat', chatRouter);
 app.use('/skills', skillRouter);
 app.use('/payment', paymentRouter);
 
+app.get('/health', (req: Request, res: Response) => {
+  res.status(200).json({
+    status: 'ok',
+    uptime: process.uptime,
+    timeStamp: new Date().toISOString(),
+  });
+});
+
 app.use((req: Request, res: Response) => {
   req.log.warn({ method: req.method, url: req.url }, 'Route not found');
   res.status(404).send('Not Found');
