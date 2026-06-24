@@ -1,6 +1,8 @@
-import { Server } from 'socket.io';
+import { Server, Socket } from 'socket.io';
 import crypto from 'crypto';
 import Chat, { IMessageInput } from '../models/chat.js';
+import { Server as HttpServer } from 'http';
+import { logger } from '../logger/logger.js';
 
 const getSecretRoomId = (userId: string, targetUserId: string): string => {
   return crypto
@@ -12,7 +14,7 @@ const getSecretRoomId = (userId: string, targetUserId: string): string => {
 export const onlineUsers = new Map<string, string>();
 export let io: Server;
 
-const initializeSocket = (server: any): Server => {
+const initializeSocket = (server: HttpServer): Server => {
   io = new Server(server, {
     cors: {
       origin: process.env.FRONTEND_URL,
@@ -20,15 +22,18 @@ const initializeSocket = (server: any): Server => {
     },
   });
 
-  io.on('connection', (socket: any) => {
+  io.on('connection', (socket: Socket) => {
     socket.on('register', (userId: string) => {
       onlineUsers.set(userId, socket.id);
       io.emit('userOnline', userId);
       socket.emit('onlineList', Array.from(onlineUsers.keys()));
-      console.log(`User ${userId} connected with socket ID ${socket.id}`);
+      logger.info(
+        { userId, socketId: socket.id },
+        'User connected with socket'
+      );
     });
 
-    socket.on('joinChat', ({ firstName, userId, targetUserId }: any) => {
+    socket.on('joinChat', ({ userId, targetUserId }: any) => {
       const roomId = getSecretRoomId(userId, targetUserId);
       socket.join(roomId);
     });
@@ -82,7 +87,7 @@ const initializeSocket = (server: any): Server => {
             });
           }
         } catch (err) {
-          console.log(err);
+          logger.error({ err }, 'Socket message failed');
         }
       }
     );
@@ -92,6 +97,7 @@ const initializeSocket = (server: any): Server => {
         if (socketId === socket.id) {
           onlineUsers.delete(userId);
           io.emit('userOffline', userId);
+          logger.info({ socketId: socket.id }, 'Socket disconnected');
           break;
         }
       }
@@ -99,6 +105,19 @@ const initializeSocket = (server: any): Server => {
   });
 
   return io;
+};
+
+export const closeSocket = (): Promise<void> => {
+  return new Promise((resolve) => {
+    if (!io) {
+      resolve();
+      return;
+    }
+
+    io.close(() => {
+      logger.info('Socket server closed');
+    });
+  });
 };
 
 export default initializeSocket;

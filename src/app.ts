@@ -13,7 +13,7 @@ import chatRouter from './routes/chat.route.js';
 import skillRouter from './routes/skill.route.js';
 import paymentRouter from './routes/payment.route.js';
 
-import initializeSocket from './utils/socket.js';
+import initializeSocket, { closeSocket } from './utils/socket.js';
 import { errorHandler } from './middlewares/errorHandler.js';
 import { requestLogger } from './middlewares/requestLogger.js';
 import { requestId } from './middlewares/requestId.js';
@@ -92,7 +92,7 @@ const shutdown = async (signal: string) => {
     try {
       await closeDB();
 
-      logger.info('Database closed');
+      await closeSocket();
 
       process.exit(0);
     } catch (err) {
