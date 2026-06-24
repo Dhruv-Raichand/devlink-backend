@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 import { logger } from '../logger/logger.js';
 
-const connectDB = async (): Promise<void> => {
+export const connectDB = async (): Promise<void> => {
   const uri = process.env.MONGODB_URI;
 
   if (!uri)
@@ -12,8 +12,15 @@ const connectDB = async (): Promise<void> => {
     logger.info({ db: 'mongodb' }, 'Database Connected');
   } catch (err) {
     logger.fatal({ err, db: 'mongodb' }, 'Database Connection failed');
-    process.exit(1);
+    throw err;
   }
 };
 
-export default connectDB;
+export const closeDB = async (): Promise<void> => {
+  try {
+    await mongoose.connection.close();
+    logger.info({ db: 'mongodb' }, 'Database closed');
+  } catch (err) {
+    logger.error({ err, db: 'mongodb' }, 'Database close failed');
+  }
+};

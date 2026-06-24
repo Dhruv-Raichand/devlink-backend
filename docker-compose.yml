@@ -1,56 +1,83 @@
 services:
   backend:
-    build: .
+    image: my-node-app
+
+    build:
+      context: .
+      dockerfile: Dockerfile
+
     container_name: backend
+
     ports:
-      - '3000:3000'
+      - '127.0.0.1:3000:3000'
+
+    mem_limit: 512m
+
     depends_on:
-      - redis
+      redis:
+        condition: service_healthy
+
     env_file:
       - .env
+
     environment:
-      - NODE_ENV=production
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
+      NODE_ENV: production
+      NODE_OPTIONS: '--max-old-space-size=400'
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+
     restart: always
-    logging: 
-      driver: 'json-file'
-      options:
-        max-size: '10m'
-        max-file: '5'
+
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://localhost:3000/health']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
 
   worker:
-    build: .
+    image: my-node-app
+
     container_name: worker
+
+    command: npm run worker
+
+    mem_limit: 512m
+
     depends_on:
-      - redis
+      redis:
+        condition: service_healthy
+
     env_file:
       - .env
+
     environment:
-      - NODE_ENV=production
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-    command: npm run worker
+      NODE_ENV: production
+      NODE_OPTIONS: '--max-old-space-size=400'
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+
     restart: always
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "5"
 
   redis:
     image: redis:7-alpine
+
     container_name: redis
-    ports:
-      - '6379:6379'
+
+    mem_limit: 512m
+
     volumes:
       - redis_data:/data
+
+    command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy noeviction
+
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
     restart: always
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "5"
 
 volumes:
   redis_data:

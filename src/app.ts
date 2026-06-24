@@ -1,5 +1,5 @@
 import express from 'express';
-import connectDB from './config/database.js';
+import { connectDB, closeDB } from './config/database.js';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import http from 'http';
@@ -48,6 +48,14 @@ app.use('/chat', chatRouter);
 app.use('/skills', skillRouter);
 app.use('/payment', paymentRouter);
 
+app.get('/health', (req: Request, res: Response) => {
+  res.status(200).json({
+    status: 'ok',
+    uptime: process.uptime,
+    timeStamp: new Date().toISOString(),
+  });
+});
+
 app.use((req: Request, res: Response) => {
   req.log.warn({ method: req.method, url: req.url }, 'Route not found');
   res.status(404).send('Not Found');
@@ -74,5 +82,33 @@ const startServer = async () => {
     process.exit(1);
   }
 };
+
+const shutdown = async (signal: string) => {
+  logger.info({ signal }, 'Shutdown started');
+
+  server.close(async () => {
+    logger.info('HTTP server closed');
+
+    try {
+      await closeDB();
+
+      logger.info('Database closed');
+
+      process.exit(0);
+    } catch (err) {
+      logger.error({ err }, 'Shutdown error');
+      process.exit(1);
+    }
+  });
+
+  setTimeout(() => {
+    logger.error('Forced shutdown');
+    process.exit(1);
+  }, 10000);
+};
+
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+
+process.on('SIGINT', () => shutdown('SIGINT'));
 
 startServer();

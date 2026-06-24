@@ -74,3 +74,15 @@ worker.on('failed', (job, err) => {
   }
   logger.error({ jobId: job.id, err }, 'Job failed');
 });
+
+const shutdown = async (signal: string) => {
+  logger.info({ signal }, 'Stopping worker');
+
+  await worker.close();
+
+  process.exit(0);
+};
+
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+
+process.on('SIGINT', () => shutdown('SIGINT'));
