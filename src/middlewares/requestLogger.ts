@@ -5,6 +5,10 @@ import { Request } from 'express';
 export const requestLogger = pinoHttp({
   logger,
 
+  autoLogging: {
+    ignore: (req) => req.url?.startsWith('/health') ?? false,
+  },
+
   customProps(req) {
     const request = req as Request;
     return {
