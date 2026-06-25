@@ -13,7 +13,7 @@ import chatRouter from './routes/chat.route.js';
 import skillRouter from './routes/skill.route.js';
 import paymentRouter from './routes/payment.route.js';
 
-import initializeSocket from './utils/socket.js';
+import initializeSocket, { closeSocket } from './utils/socket.js';
 import { errorHandler } from './middlewares/errorHandler.js';
 import { requestLogger } from './middlewares/requestLogger.js';
 import { requestId } from './middlewares/requestId.js';
@@ -51,8 +51,8 @@ app.use('/payment', paymentRouter);
 app.get('/health', (req: Request, res: Response) => {
   res.status(200).json({
     status: 'ok',
-    uptime: process.uptime,
-    timeStamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    timestamp: new Date().toISOString(),
   });
 });
 
@@ -83,7 +83,13 @@ const startServer = async () => {
   }
 };
 
+let isShuttingDown = false;
+
 const shutdown = async (signal: string) => {
+  if (isShuttingDown) return;
+
+  isShuttingDown = true;
+
   logger.info({ signal }, 'Shutdown started');
 
   server.close(async () => {
@@ -92,7 +98,7 @@ const shutdown = async (signal: string) => {
     try {
       await closeDB();
 
-      logger.info('Database closed');
+      await closeSocket();
 
       process.exit(0);
     } catch (err) {
@@ -110,5 +116,15 @@ const shutdown = async (signal: string) => {
 process.on('SIGTERM', () => shutdown('SIGTERM'));
 
 process.on('SIGINT', () => shutdown('SIGINT'));
+
+process.on('uncaughtException', (err) => {
+  logger.fatal({ err }, 'Uncaught exception');
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (err) => {
+  logger.fatal({ err }, 'Unhandled rejection');
+  process.exit(1);
+});
 
 startServer();
